@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import functools
-from flask import Flask, Response, current_app, g, request
+from flask import Flask, Response, current_app, g, request, after_this_request
 from flask_sqlalchemy import SQLAlchemy
 import hashlib
 import secrets
@@ -31,13 +31,14 @@ class _State:
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, app:Flask|None):
+    def __init__(self, db: SQLAlchemy, app:Flask|None=None):
         self.db = db
 
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app: Flask):
+        app.extensions["hs.portal.session"] = _State(app)
         app.before_request(self.load_session)
 
     @property
@@ -51,7 +52,7 @@ class SessionManager:
             return
         id_, secret = parts
 
-        session = self.db.session.get(Session, id_)
+        session = self.db.session.get(Session, uuid.UUID(hex=id_))
 
         if session is None:
             return
@@ -66,7 +67,7 @@ class SessionManager:
             g.hs_session = session
             g.hs_session_ctx = contexts
 
-            current_app.after_request(functools.partial(self.update_cookie, session, secret))
+            after_this_request(functools.partial(self.update_cookie, session, secret))
         else:
             self.db.session.delete(session)
         self.db.session.commit()
@@ -122,7 +123,7 @@ class SessionManager:
         self.db.session.commit()
 
         #TODO: remove update_cookie call from load_session as this will overwrite it
-        current_app.after_request(functools.partial(self.update_cookie, session, secret))
+        after_this_request(functools.partial(self.update_cookie, session, secret))
 
     def update_cookie(self, session: Session, secret: str, response: Response) -> Response:
         value = f"{session.id.hex}:{secret}"
@@ -176,9 +177,17 @@ class SessionManager:
         if 'hs_session_ctx' not in g:
             return False
         return ctx in g.hs_session_ctx
+    
+    @property
+    def current_context(self):
+        return g.get('hs_session_ctx', set())
 
     @staticmethod
     def hash_secret(secret: str|bytes) -> str:
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return hashlib.sha256(secret).hexdigest()
+    
+    @property
+    def current_session(self) -> Session|None:
+        return g.get('hs_session')
