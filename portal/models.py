@@ -106,3 +106,16 @@ class Session(Base):
 
 
     user: Mapped[User] = relationship(back_populates='sessions')
+
+class EmailMagicLink(Base):
+    __tablename__ = 'email_magic_link'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE"))
+    verify_key: Mapped[str]
+    visual_code: Mapped[str] # A code the user can visually check matches the one in the email
+
+    expiry: Mapped[datetime] = mapped_column(UTCDateTime())
+    verified: Mapped[bool]
+
+    user: Mapped[Optional["User"]] = relationship()
