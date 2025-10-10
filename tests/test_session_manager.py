@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import secrets
 import uuid
 import pytest
@@ -34,7 +34,8 @@ def session_secret():
 
 @pytest.fixture()
 def session_model(user_model, session_secret, app_context):
-    now = datetime.now(timezone.utc)
+    # We set now to a few seconds in the past so we can do some update checks
+    now = datetime.now(timezone.utc) - timedelta(seconds=10)
     sess = Session(
         id=uuid.uuid4(),
         secret_hash=session_manager.hash_secret(session_secret),
@@ -61,9 +62,13 @@ def test_load_session(client, session_cookie, example_endpoint, session_model):
     session_model.last_email_auth = datetime.now(timezone.utc)
     db.session.commit()
 
+    initial_last_active = session_model.last_active
+
     response = client.get("/example")
 
     assert session_manager.current_session == session_model
+    # Check that last_active got updated
+    assert session_model.last_active > initial_last_active
 
 
 def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_model):
