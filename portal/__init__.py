@@ -31,8 +31,10 @@ def create_app(test_config=None):
     app.jinja_env.trim_blocks = True
     app.jinja_env.lstrip_blocks = True
 
-    register_extensions(app)
-    register_blueprints(app)
+    if app.config.get("REGISTER_EXTENSIONS", True):
+        register_extensions(app)
+    if app.config.get("REGISTER_BLUEPRINTS", True):
+        register_blueprints(app)
     configure_logger(app)
 
     return app
