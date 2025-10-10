@@ -3,7 +3,7 @@ import functools
 from typing import Optional
 from zoneinfo import ZoneInfo
 from flask import current_app
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func, expression
 from sqlalchemy import ForeignKey, types
