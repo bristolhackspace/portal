@@ -156,6 +156,10 @@ class Authentication:
         if not secrets.compare_digest(flow.email_token_hash, self.hash_token(token)):
             return None
 
+        if commit:
+            flow.email_verified = datetime.now(timezone.utc)
+            self.db.session.commit()
+
         return flow
 
     def try_authenticate(self, session_manager: SessionManager) -> FlowStep:
@@ -178,6 +182,13 @@ class Authentication:
             auth_methods["totp"] = flow.totp_verified
 
         session_manager.authenticate_session(flow.user, methods=auth_methods)
+        self.db.session.delete(flow)
+        self.db.session.commit()
+
+        @after_this_request
+        def delete_flow_cookie(response: Response) -> Response:
+            response.delete_cookie(self._state.cookie_name)
+            return response
 
         return flow_step
 

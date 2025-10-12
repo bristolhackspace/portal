@@ -1,3 +1,4 @@
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 from portal import models
@@ -9,3 +10,9 @@ db = SQLAlchemy(metadata=models.Base.metadata)
 session_manager = SessionManager(db)
 mailer = Mailer()
 authentication = Authentication(mailer, db, "login.email_verify")
+
+def init_app(app: Flask):
+    db.init_app(app)
+    session_manager.init_app(app)
+    mailer.init_app(app)
+    authentication.init_app(app)

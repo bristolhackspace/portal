@@ -1,0 +1,15 @@
+{% extends "base.html.j2" %}
+
+{% import 'wtforms.html.j2' as wtf %}
+
+{% block title %}Login{% endblock %}
+
+{% block contents %}
+<div class="container">
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        {{ wtf.input(form.email, form) }}
+        <button type="submit" class="btn btn-primary">Request login link</button>
+    </form>
+</div>
+{% endblock %}

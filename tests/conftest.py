@@ -12,7 +12,7 @@ def app() -> Flask:
         test_config=dict(
             SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
             REGISTER_EXTENSIONS=False,
-            REGISTER_BLUEPRINTS=False,
+            REGISTER_VIEWS=False,
             TEST_MAILER=True,
         )
     )

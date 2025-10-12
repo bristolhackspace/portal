@@ -1,0 +1,519 @@
+:root {
+    --bg-color: #fff;
+    --bg-secondary-color: #f6f5f3;
+    --color-primary: #f08818;
+    --color-error: #d3503f;
+    --color-success: #59be16;
+    --font-size: 1.8rem;
+    --font-color: #2c2c2c;
+    --font-family-sans: -apple-system, "BlinkMacSystemFont", "Avenir",
+    "Avenir Next", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --header-font: "ocr-a-extended", sans-serif;
+    --grid-maxWidth: 100rem;
+    --grid-gutter: 2rem;
+    --col-gap: 0.8rem;
+    --row-gap: 1.0rem;
+    --border-width: 0.1rem;
+    --border-color: #bebdbb;
+    --border-color-active: var(--color-primary);
+    --border-radius: 0.4rem;
+    --button-color: #dfdbd2;
+    --button-hover-color: #c5c2ba;
+}
+
+@font-face {
+    font-family: 'ocr-a-extended';
+    src: url('OCRAExtended.woff2') format('woff2'),
+        url('OCRAExtended.woff') format('woff');
+      font-display: auto;
+}
+
+html {
+    box-sizing: border-box;
+    font-size: 62.5%;
+    line-height: 1.15;
+    text-size-adjust: 100%;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+}
+
+button, input, optgroup, select, textarea {
+    font-family: inherit;
+    font-size: 100%;
+    line-height: 1.15;
+    margin: 0;
+    margin-bottom: 0px;
+}
+
+a {
+    color:blue;
+}
+a:visited {
+    color:blue
+}
+
+a.nav-title {
+    color: black;
+}
+a.nav-title:visited {
+    color: black;
+}
+
+body {
+    background-color: var(--bg-color);
+    line-height: 1.6;
+    font-size: var(--font-size);
+    color: var(--font-color);
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif; /* fallback */
+    font-family: var(--font-family-sans);
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    margin: 0.35em 0 0.7em;
+}
+
+p, dt, dd, dl {
+    margin: var(--row-gap) 0;
+}
+
+dt {
+    font-weight: bold;
+}
+
+dd {
+    margin-left: 1.5rem;
+}
+
+
+.header {
+    background-color: var(--bg-secondary-color);
+    width: 100%;
+}
+
+.main {
+    margin-bottom: 5rem;
+}
+
+.footer {
+    background-color: var(--bg-secondary-color);
+    width: 100%;
+    padding: 1rem 0 5rem 0;
+    text-align: center;
+}
+
+.container {
+    max-width: var(--grid-maxWidth);
+    margin: 0 auto;
+    width: 96%;
+    padding: 0 calc(var(--grid-gutter) / 2);
+}
+
+.navbar {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--col-gap);
+    margin-bottom: var(--row-gap);
+}
+
+.nav-title {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: var(--row-gap);
+    color: var(--font-color);
+    font-family: var(--header-font);
+    font-weight: 500;
+    font-size: 2.4rem;
+    margin: 0.5rem 0;
+}
+
+a.nav-title:hover {
+    text-decoration: underline;
+}
+
+.nav-menu {
+    text-decoration: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: calc(var(--row-gap)*2);
+    column-gap: calc(var(--col-gap)*2);
+    padding: 0;
+}
+
+
+.nav-menu li {
+    list-style: none;
+}
+
+.nav-link {
+    color: var(--font-color);
+    text-decoration: none;
+    font-size: 2.0rem;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+}
+
+.figure {
+    margin: var(--row-gap) 1rem;
+}
+
+.figure img{
+    max-width: 100%;
+    max-height: 100%;
+}
+
+@media screen and (min-width: 40rem){
+    .nav-title {
+        flex-direction: row;
+    }
+
+    .figure {
+        margin: var(--row-gap) 5rem;
+    }
+}
+
+.form {
+    margin: calc(var(--row-gap)*2) var(--col-gap);
+}
+
+.form-label {
+    display: block;
+    font-weight: bold;
+    margin: var(--row-gap) 0;
+}
+
+.form-check-label {
+    display: inline;
+    margin: var(--row-gap) var(--col-gap);
+}
+
+.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--border-radius);
+    line-height: 1.5;
+    display: block;
+    padding: 0.6rem 1.0rem;
+    width: 100%;
+    margin: var(--row-gap) 0;
+}
+
+.form-control:focus-visible {
+    border-color: var(--border-color-active);
+    box-shadow: none;
+    outline: var(--border-color-active) solid 0.1rem;
+}
+
+.form-check-control {
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--border-radius);
+    display: inline;
+    margin: var(--row-gap) 0;
+}
+
+textarea {
+    min-height: 6.5rem;
+}
+
+.button {
+    line-height: 4.0rem;
+    padding: 0 2.0rem;
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: var(--button-color);
+}
+
+.button:hover {
+    background-color: var(--button-hover-color);
+    cursor: pointer;
+}
+
+#mosparo-box {
+    margin: var(--row-gap) 0;
+}
+
+.list-box {
+    display: flex;
+    flex-direction: column;
+    row-gap: 1.0rem;
+    padding: 0;
+}
+
+.list-box > li {
+    list-style: none;
+    padding: 0.5rem;
+    background-color: var(--bg-secondary-color);
+}
+
+.required:after {
+    content: '*';
+    color: red;
+}
+
+.accent-box {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--bg-secondary-color);
+}
+
+.flashes {
+    display: flex;
+    flex-direction: column;
+    row-gap: 1.0rem;
+    padding: 0;
+}
+
+.flashes > li {
+    list-style: none;
+    padding: 0.5rem;
+    /* Will need styling to make it distinct from input fields */
+    border: var(--border-width) solid var(--border-color);
+}
+
+.flashes > li.success {
+    background-color: #66ff004a;
+    text-align: center;
+    border-color: #409f00;
+}
+
+.gallery {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 1.0rem;
+    column-gap: 1.0rem;
+    padding: 0;
+}
+
+.gallery > li {
+    list-style: none;
+    padding: 0.5rem;
+    background-color: var(--bg-secondary-color);
+}
+
+.gallery-image {
+    width: 40rem;
+    height: 40rem;
+    display: block;
+    object-fit: contain;
+    background-color: var(--bg-secondary-color);
+    margin: var(--row-gap) auto;
+}
+
+/* grid-template-columns set in style attribute to allow configuration in database
+Defaulting to 3 for the User bookings*/
+.grid-container {
+    width:100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: none;
+    row-gap: 1rem;
+    column-gap: 1rem;
+}
+
+.grid-card {
+    background-color: white;
+    border: 1px solid grey;
+    box-shadow: 0px 1px 2px grey;
+    border-radius: 5px;
+}
+.grid-card.user {
+    flex-direction: column;
+}
+
+.card-header {
+    padding: 1px 1rem 1px 1rem;
+    background-color: #ffd8b0;
+    border-radius: 5px 5px 0 0;
+	text-shadow: 1px 1px 1px #fff;
+    display: flex;
+    justify-content: space-between;
+}
+
+.card-header > h3 {
+    display: inline-flex;
+}
+
+.card-header > h3.float-right {
+    text-align: right;
+}
+
+.card-header.free {
+    background-color: #66ff008f;
+}
+.card-header.booked {
+    background-color: #ff00004a;
+    background-image: linear-gradient(
+      45deg,
+      rgba(0,0,0,0.14) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(0,0,0,0.14) 50%,
+      rgba(0,0,0,0.14) 75%,
+      transparent 75%,
+      transparent
+      );
+    background-size: 50px 50px;
+}
+
+.card-body {
+    margin: 1rem 1rem 0 1rem;
+}
+
+.user > .card-body{
+    margin: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.user > .card-body p {
+    margin:0;
+}
+
+.user > .card-body p:first-of-type {
+    min-height: 90px;
+}
+
+.user > .card-body p:last-of-type {
+    text-align: right;
+}
+
+.card-footer {
+    margin: 0 1rem 1rem 1rem;
+    display: flex;
+    float: right;
+}
+.card-footer-user {
+    margin: 0 1rem 1rem 1rem;
+    display: flex;
+    float: none;
+    justify-content: space-around;
+}
+
+.booking-button {
+    background-color: #d17308;
+    border-color: #d17308;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 3rem;
+    letter-spacing: 0.1rem;
+    padding: 0.6rem 2rem;
+    text-align: center;
+    text-decoration: none;
+}
+.booking-button:focus,
+.booking-button:hover {
+    background-color: #4e4a46;
+    border-color: #4e4a46;
+    color: #fff;
+}
+
+.booking-button:visited {
+    color: #fff
+}
+
+.cancel-button {
+    background-color: var(--color-error);
+    border-radius: 5px;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: block;
+    padding: 0.6rem 2rem;
+    text-align: center;
+    text-decoration: none;
+}
+.cancel-button:before {
+    content: url(../images/cancel.svg);
+    margin-right: 0.5rem;
+}
+.cancel-button:visited {
+    color: #fff;
+}
+.extend-button {
+    background-color: #d17308;
+    border-radius: 5px;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: block;
+    padding: 0.6rem 2rem;
+    text-align: center;
+    text-decoration: none;
+}
+.extend-button:before {
+    content: url(../images/extend.svg);
+    margin-right: 0.5rem;
+}
+.extend-button:visited {
+    color:#fff;
+}
+
+.extend-button.no-icon:before {
+    content: '';
+    margin-right: none;
+}
+
+.accordion {
+  background-color: #fff1e3;
+  color: #444;
+  cursor: pointer;
+  padding: 2rem;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  transition: 0.4s;
+  font-weight: bold;
+  border-radius: 5px;
+}
+.accordion:before {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  font-size: 13px;
+  color: #ffffff;
+  float: left;
+  margin-left: 5px;
+  margin-right: 17px;
+  margin-top: 3px;
+}
+
+.active, .accordion:hover {
+  background-color: #ffd8b0;
+}
+.active:before {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+.panel {
+  padding: 0 2rem;
+  max-height: 0;
+  background-color: white;
+  overflow: hidden;
+  margin: 1rem 0;
+  transition: max-height 0.2s ease-out
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.flatpickr-input + input {
+  width:307.875px;
+}

@@ -22,7 +22,7 @@ class _BaseMailer(ABC):
         except TemplateNotFound:
             html_content = None
 
-        receiver_email = formataddr((user.name, user.email))
+        receiver_email = formataddr((user.display_name, user.email))
         self.raw_send_email(
             sender_email, receiver_email, plain_content, html_content, subject
         )
