@@ -1,7 +1,9 @@
 
 
+from datetime import datetime, timedelta, timezone
 import secrets
 import uuid
+from flask import request
 import pytest
 import typing
 import yarl
@@ -35,10 +37,35 @@ def user_model(app_context):
     db.session.commit()
     return user
 
+@pytest.fixture()
+def flow_token():
+    return secrets.token_urlsafe()
 
 @pytest.fixture()
-def session_secret():
+def email_token():
     return secrets.token_urlsafe()
+
+@pytest.fixture()
+def flow_model(app_context, user_model, flow_token, email_token):
+    flow = AuthFlow(
+        id=uuid.uuid4(),
+        user=user_model,
+        flow_token_hash=authentication.hash_token(flow_token),
+        email_token_hash=authentication.hash_token(email_token),
+        visual_code=secrets.token_hex(2),
+        expiry=datetime.now(timezone.utc) + timedelta(minutes=20)
+    )
+    db.session.add(flow)
+    db.session.commit()
+    return flow
+
+@pytest.fixture()
+def flow_cookie(
+    client, app_context, init_authentication, flow_token, flow_model
+):
+    cookie_name = authentication._state.cookie_name
+    cookie_val = f"{flow_model.id.hex}:{flow_token}"
+    client.set_cookie(cookie_name, cookie_val)
 
 
 def test_send_magic_email(app, client, init_authentication, user_model):
@@ -74,3 +101,73 @@ def test_send_magic_email(app, client, init_authentication, user_model):
     assert magic_url.query["id"] == flow.id.hex
     assert authentication.hash_token(magic_url.query["token"]) == flow.email_token_hash
 
+
+def test_verify_magic_link(app, client, init_authentication, flow_model, email_token):
+
+    authentication.magic_link_route = "verify_magic"
+    verified_flow: AuthFlow|None = None
+    @app.route("/verify_magic")
+    def verify_magic():
+        nonlocal verified_flow
+        verified_flow = authentication.verify_magic_link(request, commit=False)
+
+    response = client.get("/verify_magic", query_string=dict(
+        id=flow_model.id.hex,
+        token=email_token
+    ))
+
+    assert verified_flow is not None
+    verified_flow = typing.cast(AuthFlow, verified_flow)
+
+    assert verified_flow == flow_model
+
+def test_verify_magic_link_invalid_token(app, client, init_authentication, flow_model, email_token):
+
+    authentication.magic_link_route = "verify_magic"
+    verified_flow: AuthFlow|None = None
+    @app.route("/verify_magic")
+    def verify_magic():
+        nonlocal verified_flow
+        verified_flow = authentication.verify_magic_link(request, commit=False)
+
+    response = client.get("/verify_magic", query_string=dict(
+        id=flow_model.id.hex,
+        token=email_token + "a"
+    ))
+
+    assert verified_flow is None
+
+
+def test_verify_magic_link_expired(app, client, init_authentication, flow_model, email_token):
+    flow_model.expiry = datetime.now(timezone.utc) - timedelta(seconds=10)
+    db.session.commit()
+
+    authentication.magic_link_route = "verify_magic"
+    verified_flow: AuthFlow|None = None
+    @app.route("/verify_magic")
+    def verify_magic():
+        nonlocal verified_flow
+        verified_flow = authentication.verify_magic_link(request, commit=False)
+
+    response = client.get("/verify_magic", query_string=dict(
+        id=flow_model.id.hex,
+        token=email_token
+    ))
+
+    assert verified_flow is None
+
+
+def test_load_flow(app, client, init_authentication, flow_model, flow_cookie):
+    loaded_flow: AuthFlow|None = None
+    @app.route("/load_flow")
+    def load_flow():
+        nonlocal loaded_flow
+        authentication.load_flow()
+        loaded_flow = authentication.current_flow
+
+    response = client.get("/load_flow")
+
+    assert loaded_flow is not None
+    loaded_flow = typing.cast(AuthFlow, loaded_flow)
+
+    assert loaded_flow == flow_model
