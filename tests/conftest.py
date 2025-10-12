@@ -13,6 +13,7 @@ def app() -> Flask:
             SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
             REGISTER_EXTENSIONS=False,
             REGISTER_BLUEPRINTS=False,
+            TEST_MAILER=True,
         )
     )
     return app

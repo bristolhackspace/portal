@@ -86,6 +86,8 @@ class User(PkModel):
     __tablename__ = 'user'
 
     display_name: Mapped[Optional[str]]
+    email: Mapped[Optional[str]]
+    totp_secret: Mapped[Optional[str]]
 
     sessions: Mapped[list['Session']] = relationship(back_populates='user')
 
@@ -103,5 +105,19 @@ class Session(Base):
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
-
     user: Mapped[User] = relationship(back_populates='sessions')
+
+class AuthFlow(Base):
+    __tablename__ = 'auth_flow'
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE"))
+    flow_token_hash: Mapped[str]
+    email_token_hash: Mapped[str]
+    visual_code: Mapped[str] # A code the user can visually check matches the one in the email
+
+    expiry: Mapped[datetime] = mapped_column(UTCDateTime())
+    email_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
+    totp_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
+
+    user: Mapped[Optional["User"]] = relationship()
