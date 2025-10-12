@@ -145,7 +145,7 @@ class Authentication:
         link_id = request.args.get("id")
         token = request.args.get("token", "")
 
-        flow = self.db.session.get(AuthFlow, link_id)
+        flow = self.db.session.get(AuthFlow, uuid.UUID(hex=link_id))
 
         if not flow:
             return None
