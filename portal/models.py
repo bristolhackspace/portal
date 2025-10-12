@@ -12,10 +12,12 @@ from uuid import UUID
 
 Base = declarative_base()
 
+
 @functools.cache
 def local_timezone():
     zone = current_app.config.get("TIMEZONE", "Europe/London")
     return ZoneInfo(zone)
+
 
 class UTCDateTime(types.TypeDecorator):
 
@@ -28,13 +30,12 @@ class UTCDateTime(types.TypeDecorator):
         if value.tzinfo is None:
             raise ValueError("Datetime must be timezone aware")
 
-        return value.astimezone(timezone.utc).replace(
-            tzinfo=None
-        )
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
 
     def process_result_value(self, value: datetime, engine):
         if value is not None:
             return value.replace(tzinfo=timezone.utc)
+
 
 class LocalDateTime(types.TypeDecorator):
 
@@ -48,9 +49,7 @@ class LocalDateTime(types.TypeDecorator):
             zone = local_timezone()
             value = value.replace(tzinfo=zone)
 
-        return value.astimezone(timezone.utc).replace(
-            tzinfo=None
-        )
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
 
     def process_result_value(self, value: datetime, engine):
         if value is not None:
@@ -75,29 +74,31 @@ class SpaceSeparatedSet(types.TypeDecorator):
         else:
             return set()
 
+
 class PkModel(Base):
     """Base model with a primary key column named ``id``."""
+
     __abstract__ = True
 
     id: Mapped[int] = mapped_column(primary_key=True, sort_order=-1)
 
 
 class User(PkModel):
-    __tablename__ = 'user'
+    __tablename__ = "user"
 
     display_name: Mapped[Optional[str]]
     email: Mapped[Optional[str]]
     totp_secret: Mapped[Optional[str]]
 
-    sessions: Mapped[list['Session']] = relationship(back_populates='user')
+    sessions: Mapped[list["Session"]] = relationship(back_populates="user")
 
 
 class Session(Base):
-    __tablename__ = 'session'
+    __tablename__ = "session"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     secret_hash: Mapped[str]
-    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     created: Mapped[datetime] = mapped_column(UTCDateTime())
     last_active: Mapped[datetime] = mapped_column(UTCDateTime())
     last_email_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
@@ -105,16 +106,20 @@ class Session(Base):
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
-    user: Mapped[User] = relationship(back_populates='sessions')
+    user: Mapped[User] = relationship(back_populates="sessions")
+
 
 class AuthFlow(Base):
-    __tablename__ = 'auth_flow'
+    __tablename__ = "auth_flow"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE"))
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE")
+    )
     flow_token_hash: Mapped[str]
     email_token_hash: Mapped[str]
-    visual_code: Mapped[str] # A code the user can visually check matches the one in the email
+    # A code the user can visually check matches the one in the email
+    visual_code: Mapped[str]
 
     expiry: Mapped[datetime] = mapped_column(UTCDateTime())
     email_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())

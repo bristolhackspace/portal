@@ -1,5 +1,3 @@
-
-
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 import functools
@@ -7,7 +5,16 @@ import hashlib
 import secrets
 import typing
 import uuid
-from flask import Flask, Request, Response, after_this_request, current_app, g, request, url_for
+from flask import (
+    Flask,
+    Request,
+    Response,
+    after_this_request,
+    current_app,
+    g,
+    request,
+    url_for,
+)
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
@@ -22,21 +29,30 @@ class FlowStep(Enum):
     VERIFY_TOTP = auto()
     FINISHED = auto()
 
+
 class _State:
     def __init__(self, app: Flask):
-        self.flow_expiry = self.as_timedelta(app.config.get("AUTH_FLOW_EXPIRY", timedelta(minutes=10)))
-        self.cookie_name: str = app.config.get('AUTH_FLOW_COOKIE_NAME', "flow_id")
-        self.cookie_secure: bool = app.config.get('AUTH_FLOW_COOKIE_SECURE', False)
+        self.flow_expiry = self.as_timedelta(
+            app.config.get("AUTH_FLOW_EXPIRY", timedelta(minutes=10))
+        )
+        self.cookie_name: str = app.config.get("AUTH_FLOW_COOKIE_NAME", "flow_id")
+        self.cookie_secure: bool = app.config.get("AUTH_FLOW_COOKIE_SECURE", False)
 
     @staticmethod
-    def as_timedelta(value: int|float|timedelta) -> timedelta:
+    def as_timedelta(value: int | float | timedelta) -> timedelta:
         if not isinstance(value, timedelta):
             value = timedelta(seconds=value)
         return value
 
 
 class Authentication:
-    def __init__(self, mailer: Mailer, db: SQLAlchemy, magic_link_route: str, app:Flask|None=None, ):
+    def __init__(
+        self,
+        mailer: Mailer,
+        db: SQLAlchemy,
+        magic_link_route: str,
+        app: Flask | None = None,
+    ):
         self.mailer = mailer
         self.db = db
         self.magic_link_route = magic_link_route
@@ -53,7 +69,7 @@ class Authentication:
         return state
 
     def send_magic_email(self, email: str) -> AuthFlow:
-        query = sa.select(User).filter(User.email==email)
+        query = sa.select(User).filter(User.email == email)
         user = self.db.session.execute(query).scalar_one_or_none()
 
         now = datetime.now(timezone.utc)
@@ -67,14 +83,11 @@ class Authentication:
             flow_token_hash=self.hash_token(flow_token),
             email_token_hash=self.hash_token(email_token),
             visual_code=secrets.token_hex(2),
-            expiry=now+self._state.flow_expiry
+            expiry=now + self._state.flow_expiry,
         )
 
         magic_url = url_for(
-            self.magic_link_route,
-            id=flow.id.hex,
-            token=email_token,
-            _external=True
+            self.magic_link_route, id=flow.id.hex, token=email_token, _external=True
         )
 
         self.db.session.add(flow)
@@ -86,10 +99,8 @@ class Authentication:
                 template="emails/magic_link",
                 subject="Your Login link",
                 flow=flow,
-                magic_url=magic_url
+                magic_url=magic_url,
             )
-
-
 
         after_this_request(functools.partial(self.set_flow_cookie, flow, flow_token))
 
@@ -97,14 +108,16 @@ class Authentication:
 
         return flow
 
-    def set_flow_cookie(self, flow: AuthFlow, flow_token: str, response: Response) -> Response:
+    def set_flow_cookie(
+        self, flow: AuthFlow, flow_token: str, response: Response
+    ) -> Response:
         value = f"{flow.id.hex}:{flow_token}"
         response.set_cookie(
             key=self._state.cookie_name,
             value=value,
             max_age=None,
             httponly=True,
-            secure=self._state.cookie_secure
+            secure=self._state.cookie_secure,
         )
         return response
 
@@ -125,10 +138,10 @@ class Authentication:
         g.flow = flow
 
     @property
-    def current_flow(self) -> AuthFlow|None:
-        return g.get('flow')
+    def current_flow(self) -> AuthFlow | None:
+        return g.get("flow")
 
-    def verify_magic_link(self, request: Request, commit: bool) -> AuthFlow|None:
+    def verify_magic_link(self, request: Request, commit: bool) -> AuthFlow | None:
         link_id = request.args.get("id")
         token = request.args.get("token", "")
 
@@ -159,15 +172,12 @@ class Authentication:
         auth_methods = {}
 
         if flow.email_verified:
-            auth_methods['email'] = flow.email_verified
+            auth_methods["email"] = flow.email_verified
 
         if flow.totp_verified:
-            auth_methods['totp'] = flow.totp_verified
+            auth_methods["totp"] = flow.totp_verified
 
-        session_manager.authenticate_session(
-            flow.user,
-            methods=auth_methods
-        )
+        session_manager.authenticate_session(flow.user, methods=auth_methods)
 
         return flow_step
 
@@ -180,7 +190,7 @@ class Authentication:
         return FlowStep.FINISHED
 
     @staticmethod
-    def hash_token(secret: str|bytes) -> str:
+    def hash_token(secret: str | bytes) -> str:
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return hashlib.sha256(secret).hexdigest()

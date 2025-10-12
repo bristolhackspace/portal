@@ -11,6 +11,7 @@ from jinja2 import TemplateNotFound
 
 from portal.models import User
 
+
 class _BaseMailer(ABC):
     def send_email(self, user: User, template: str, subject: str, **kwargs):
         sender_email = current_app.config["SENDER_EMAIL"]
@@ -22,11 +23,15 @@ class _BaseMailer(ABC):
             html_content = None
 
         receiver_email = formataddr((user.name, user.email))
-        self.raw_send_email(sender_email, receiver_email, plain_content, html_content, subject)
+        self.raw_send_email(
+            sender_email, receiver_email, plain_content, html_content, subject
+        )
 
     @abstractmethod
-    def raw_send_email(self, sender: str, receiver: str, text: str, html: str|None, subject:str):
-        ...
+    def raw_send_email(
+        self, sender: str, receiver: str, text: str, html: str | None, subject: str
+    ): ...
+
 
 class _SmtpMailer(_BaseMailer):
     def __init__(self, app: Flask):
@@ -36,7 +41,9 @@ class _SmtpMailer(_BaseMailer):
         self.password = current_app.config["SMTP_PASSWORD"]
         self.extra_headers: dict[str, str] = current_app.config.get("SMTP_HEADERS", {})
 
-    def raw_send_email(self, sender: str, receiver: str, text: str, html: str|None, subject:str):
+    def raw_send_email(
+        self, sender: str, receiver: str, text: str, html: str | None, subject: str
+    ):
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
         with smtplib.SMTP(self.host, self.port) as server:
@@ -58,7 +65,8 @@ class _SmtpMailer(_BaseMailer):
             if html:
                 message.attach(MIMEText(html, "html"))
 
-            server.sendmail(sender, receiver, message.as_string())  
+            server.sendmail(sender, receiver, message.as_string())
+
 
 class _TestMailer(_BaseMailer):
     @dataclass
@@ -67,30 +75,37 @@ class _TestMailer(_BaseMailer):
         template: str
         subject: str
         kwargs: dict[str, Any]
-        
+
     def __init__(self, app: Flask):
-        self.captured_emails = []
+        self.captured_emails: list[_TestMailer.EmailCapture] = []
 
     def send_email(self, user: User, template: str, subject: str, **kwargs):
-        self.captured_emails.append(self.EmailCapture(
-            user=user,
-            template=template,
-            subject=subject,
-            kwargs=kwargs
-        ))
+        self.captured_emails.append(
+            self.EmailCapture(
+                user=user, template=template, subject=subject, kwargs=kwargs
+            )
+        )
 
-    def raw_send_email(self, sender: str, receiver: str, text: str, html: str|None, subject:str):
+    def raw_send_email(
+        self, sender: str, receiver: str, text: str, html: str | None, subject: str
+    ):
         pass
+
 
 class _LoggingMailer(_BaseMailer):
     def __init__(self, app: Flask):
         pass
 
-    def raw_send_email(self, sender: str, receiver: str, text: str, html: str|None, subject:str):
-        current_app.logger.info(f"Sending email from {sender} to {receiver}: {subject} \n\n {text}")
+    def raw_send_email(
+        self, sender: str, receiver: str, text: str, html: str | None, subject: str
+    ):
+        current_app.logger.info(
+            f"Sending email from {sender} to {receiver}: {subject} \n\n {text}"
+        )
+
 
 class Mailer:
-    def __init__(self, app:Flask|None=None):
+    def __init__(self, app: Flask | None = None):
         if app is not None:
             self.init_app(app)
 
@@ -108,6 +123,6 @@ class Mailer:
     def _state(self) -> _BaseMailer:
         state = current_app.extensions["hs.portal.mailer"]
         return state
-    
+
     def send_email(self, user: User, template: str, subject: str, **kwargs):
         self._state.send_email(user, template, subject, **kwargs)

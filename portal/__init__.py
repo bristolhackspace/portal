@@ -40,12 +40,11 @@ def create_app(test_config=None):
     return app
 
 
-def register_extensions(app: Flask):
-    ...
+def register_extensions(app: Flask): ...
 
 
-def register_blueprints(app: Flask):
-    ...
+def register_blueprints(app: Flask): ...
+
 
 def configure_logger(app):
     """Configure loggers."""

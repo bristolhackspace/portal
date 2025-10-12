@@ -1,5 +1,3 @@
-
-
 from datetime import datetime, timedelta, timezone
 import functools
 from flask import Flask, Response, current_app, g, request, after_this_request
@@ -13,25 +11,31 @@ from portal.models import Session, User
 
 class _State:
     def __init__(self, app: Flask):
-        self.cookie_name: str = app.config.get('HS_SESSION_NAME', "id")
-        self.cookie_max_age = self.as_timedelta(app.config.get('HS_SESSION_MAX_AGE', timedelta(days=30)))
-        self.cookie_secure: bool = app.config.get('HS_SESSION_SECURE', False)
+        self.cookie_name: str = app.config.get("HS_SESSION_NAME", "id")
+        self.cookie_max_age = self.as_timedelta(
+            app.config.get("HS_SESSION_MAX_AGE", timedelta(days=30))
+        )
+        self.cookie_secure: bool = app.config.get("HS_SESSION_SECURE", False)
 
-        self.keyfob_max_idle = self.as_timedelta(app.config.get("HS_KEYFOB_MAX_IDLE", timedelta(minutes=20)))
-        self.login_max_idle = self.as_timedelta(app.config.get("HS_LOGIN_MAX_IDLE", timedelta(days=30)))
-        self.elevated_auth_expiry = self.as_timedelta(app.config.get("HS_ELEVATED_AUTH_EXPIRY", timedelta(minutes=20)))
-
-
+        self.keyfob_max_idle = self.as_timedelta(
+            app.config.get("HS_KEYFOB_MAX_IDLE", timedelta(minutes=20))
+        )
+        self.login_max_idle = self.as_timedelta(
+            app.config.get("HS_LOGIN_MAX_IDLE", timedelta(days=30))
+        )
+        self.elevated_auth_expiry = self.as_timedelta(
+            app.config.get("HS_ELEVATED_AUTH_EXPIRY", timedelta(minutes=20))
+        )
 
     @staticmethod
-    def as_timedelta(value: int|float|timedelta) -> timedelta:
+    def as_timedelta(value: int | float | timedelta) -> timedelta:
         if not isinstance(value, timedelta):
             value = timedelta(seconds=value)
         return value
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, app:Flask|None=None):
+    def __init__(self, db: SQLAlchemy, app: Flask | None = None):
         self.db = db
 
         if app is not None:
@@ -86,7 +90,7 @@ class SessionManager:
         """
         now = datetime.now(timezone.utc)
 
-        session: Session|None = g.get('hs_session')
+        session: Session | None = g.get("hs_session")
         # If the current session is for a different user then delete it
         if session and session.user != user:
             self.db.session.delete(session)
@@ -94,12 +98,7 @@ class SessionManager:
             session = None
 
         if session is None:
-            session = Session(
-                id=uuid.uuid4(),
-                created=now,
-                user=user,
-                last_active=now
-            )
+            session = Session(id=uuid.uuid4(), created=now, user=user, last_active=now)
             self.db.session.add(session)
             g.hs_session = session
 
@@ -109,30 +108,32 @@ class SessionManager:
 
         for method, auth_time in methods.items():
             match method:
-                case 'email':
+                case "email":
                     session.last_email_auth = auth_time
-                case 'keyfob':
+                case "keyfob":
                     session.last_keyfob_auth = auth_time
-                case 'totp':
+                case "totp":
                     session.last_totp_auth = auth_time
-                case 'passkey':
+                case "passkey":
                     session.last_passkey_auth = auth_time
                 case _:
                     raise ValueError(f"Invalid method {method}")
 
         self.db.session.commit()
 
-        #TODO: remove update_cookie call from load_session as this will overwrite it
+        # TODO: remove update_cookie call from load_session as this will overwrite it
         after_this_request(functools.partial(self.update_cookie, session, secret))
 
-    def update_cookie(self, session: Session, secret: str, response: Response) -> Response:
+    def update_cookie(
+        self, session: Session, secret: str, response: Response
+    ) -> Response:
         value = f"{session.id.hex}:{secret}"
         response.set_cookie(
             key=self._state.cookie_name,
             value=value,
             max_age=self._state.cookie_max_age,
             httponly=True,
-            secure=self._state.cookie_secure
+            secure=self._state.cookie_secure,
         )
         return response
 
@@ -156,38 +157,51 @@ class SessionManager:
             if now < session.last_active + self._state.keyfob_max_idle:
                 contexts.add("plastic")
 
-        if (session.last_email_auth or session.last_passkey_auth or session.last_totp_auth):
+        if (
+            session.last_email_auth
+            or session.last_passkey_auth
+            or session.last_totp_auth
+        ):
             if now < session.last_active + self._state.login_max_idle:
                 contexts.add("bronze")
 
-        if session.last_email_auth and now < session.last_email_auth + self._state.elevated_auth_expiry:
+        if (
+            session.last_email_auth
+            and now < session.last_email_auth + self._state.elevated_auth_expiry
+        ):
             contexts.add("silver")
 
-        if session.last_totp_auth and now < session.last_totp_auth + self._state.elevated_auth_expiry:
+        if (
+            session.last_totp_auth
+            and now < session.last_totp_auth + self._state.elevated_auth_expiry
+        ):
             contexts.add("silver")
             contexts.add("gold")
 
-        if session.last_passkey_auth and now < session.last_passkey_auth + self._state.elevated_auth_expiry:
+        if (
+            session.last_passkey_auth
+            and now < session.last_passkey_auth + self._state.elevated_auth_expiry
+        ):
             contexts.add("silver")
             contexts.add("gold")
 
         return contexts
 
     def has_context(self, ctx: str) -> bool:
-        if 'hs_session_ctx' not in g:
+        if "hs_session_ctx" not in g:
             return False
         return ctx in g.hs_session_ctx
-    
+
     @property
     def current_context(self):
-        return g.get('hs_session_ctx', set())
+        return g.get("hs_session_ctx", set())
 
     @staticmethod
-    def hash_secret(secret: str|bytes) -> str:
+    def hash_secret(secret: str | bytes) -> str:
         if isinstance(secret, str):
             secret = secret.encode("utf-8")
         return hashlib.sha256(secret).hexdigest()
-    
+
     @property
-    def current_session(self) -> Session|None:
-        return g.get('hs_session')
+    def current_session(self) -> Session | None:
+        return g.get("hs_session")
