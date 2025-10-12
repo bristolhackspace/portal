@@ -6,7 +6,7 @@ from flask import current_app
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func, expression
-from sqlalchemy import ForeignKey, types
+from sqlalchemy import Column, ForeignKey, Table, types
 from uuid import UUID
 
 
@@ -82,6 +82,12 @@ class PkModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, sort_order=-1)
 
+user_role_association = Table(
+    "user_role",
+    Base.metadata,
+    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("role_id", ForeignKey("role.id"), primary_key=True),
+)
 
 class User(PkModel):
     __tablename__ = "user"
@@ -91,6 +97,7 @@ class User(PkModel):
     totp_secret: Mapped[Optional[str]]
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user")
+    roles: Mapped[list["Role"]] = relationship("Role", secondary=user_role_association)
 
 
 class Session(Base):
@@ -126,3 +133,31 @@ class AuthFlow(Base):
     totp_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
     user: Mapped[Optional["User"]] = relationship()
+
+
+class OAuthClient(Base):
+    __tablename__ = "oauth_client"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    name: Mapped[str]
+
+
+class Role(PkModel):
+    __tablename__ = "role"
+
+    name: Mapped[str]
+
+    claim_sets: Mapped[list["ClaimSet"]] = relationship(back_populates="role")
+
+class ClaimSet(PkModel):
+    __tablename__ = "claim_set"
+
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey("role.id", onupdate="CASCADE", ondelete="CASCADE")
+    )
+    oauth_client_id: Mapped[int] = mapped_column(
+        ForeignKey("oauth_client.id", onupdate="CASCADE", ondelete="CASCADE")
+    )
+
+    role: Mapped["Role"] = relationship(back_populates="claim_sets")
+    oauth_client: Mapped["OAuthClient"] = relationship()
