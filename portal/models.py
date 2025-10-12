@@ -34,8 +34,7 @@ class UTCDateTime(types.TypeDecorator):
 
     def process_result_value(self, value: datetime, engine):
         if value is not None:
-            zone = local_timezone()
-            return value.replace(tzinfo=timezone.utc).astimezone(zone)
+            return value.replace(tzinfo=timezone.utc)
 
 class LocalDateTime(types.TypeDecorator):
 
