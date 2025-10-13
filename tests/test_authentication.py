@@ -19,7 +19,6 @@ def init_mailer(app):
 
 @pytest.fixture()
 def init_authentication(app, init_db, init_mailer):
-    authentication.magic_link_route = 'magic_mock'
     authentication.init_app(app)
 
 
@@ -70,12 +69,9 @@ def flow_cookie(
 
 def test_send_magic_email(app, client, init_authentication, user_model):
 
-    flow: AuthFlow|None = None
-
     @app.route("/login")
     def login():
-        nonlocal flow
-        flow = authentication.send_magic_email(user_model.email)
+        authentication.send_magic_email(user_model.email, "magic_mock")
         return "OK"
 
     response = client.get("/login")
@@ -85,26 +81,23 @@ def test_send_magic_email(app, client, init_authentication, user_model):
     id_, token = cookie.value.split(":")
     cookie_flow = db.session.get(AuthFlow, uuid.UUID(hex=id_))
 
-    assert flow is not None
-    flow = typing.cast(AuthFlow, flow)
+    assert cookie_flow is not None
 
-    assert flow == cookie_flow
+    assert authentication.current_flow == cookie_flow
     assert cookie_flow.flow_token_hash == authentication.hash_token(token)
 
-    test_mailer: _TestMailer = mailer._state
+    test_mailer = typing.cast(_TestMailer, mailer._state)
     assert len(test_mailer.captured_emails) == 1
     captured_email = test_mailer.captured_emails[0]
     assert captured_email.user == user_model
-    assert captured_email.kwargs['flow'] == flow
+    assert captured_email.kwargs['flow'] == cookie_flow
 
     magic_url = yarl.URL(captured_email.kwargs['magic_url'])
-    assert magic_url.query["id"] == flow.id.hex
-    assert authentication.hash_token(magic_url.query["token"]) == flow.email_token_hash
+    assert magic_url.query["id"] == cookie_flow.id.hex
+    assert authentication.hash_token(magic_url.query["token"]) == cookie_flow.email_token_hash
 
 
 def test_verify_magic_link(app, client, init_authentication, flow_model, email_token):
-
-    authentication.magic_link_route = "verify_magic"
     verified_flow: AuthFlow|None = None
     @app.route("/verify_magic")
     def verify_magic():
@@ -122,8 +115,6 @@ def test_verify_magic_link(app, client, init_authentication, flow_model, email_t
     assert verified_flow == flow_model
 
 def test_verify_magic_link_invalid_token(app, client, init_authentication, flow_model, email_token):
-
-    authentication.magic_link_route = "verify_magic"
     verified_flow: AuthFlow|None = None
     @app.route("/verify_magic")
     def verify_magic():
@@ -142,7 +133,6 @@ def test_verify_magic_link_expired(app, client, init_authentication, flow_model,
     flow_model.expiry = datetime.now(timezone.utc) - timedelta(seconds=10)
     db.session.commit()
 
-    authentication.magic_link_route = "verify_magic"
     verified_flow: AuthFlow|None = None
     @app.route("/verify_magic")
     def verify_magic():

@@ -19,7 +19,7 @@ def index():
 
     flow = authentication.current_flow
 
-    step = authentication.try_authenticate(session_manager)
+    step = authentication.try_authenticate(session_manager, "main.index")
 
     if step == FlowStep.VERIFY_EMAIL:
         login_poll_url = url_for(".poll")
@@ -32,7 +32,7 @@ def index():
         if form.validate_on_submit():
             # Validation will ensure email is not None
             email = typing.cast(str, form.email.data)
-            flow = authentication.send_magic_email(email)
+            flow = authentication.send_magic_email(email, "login.email_verify")
             return redirect(url_for(".index"))
         return render_template("login/index.html.j2", form=form)
 
