@@ -187,13 +187,8 @@ class SessionManager:
 
         return contexts
 
-    def has_context(self, ctx: str) -> bool:
-        if "hs_session_ctx" not in g:
-            return False
-        return ctx in g.hs_session_ctx
-
     @property
-    def current_context(self):
+    def current_context(self) -> set[str]:
         return g.get("hs_session_ctx", set())
 
     @staticmethod
