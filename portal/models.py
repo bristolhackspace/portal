@@ -259,7 +259,7 @@ class JWK(Base):
             created=datetime.now(tz=timezone.utc),
         )
     
-    def to_pyjwk(self, private: bool=False) -> PyJWK:
+    def to_jwk_data(self, private: bool=False) -> dict[str, Any]:
         params = {
             "kid": self.id.hex,
             "alg": self.alg,
@@ -269,4 +269,8 @@ class JWK(Base):
             params.update(self.public_params)
         if private:
             params.update(self.private_params)
+        return params
+    
+    def to_pyjwk(self, private: bool=False) -> PyJWK:
+        params = self.to_jwk_data(private)
         return PyJWK(params)
