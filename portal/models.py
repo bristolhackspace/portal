@@ -265,7 +265,8 @@ class JWK(Base):
             "alg": self.alg,
             "kty": self.kty
         }
-        params.update(self.public_params)
+        if self.public_params:
+            params.update(self.public_params)
         if private:
             params.update(self.private_params)
         return PyJWK(params)
