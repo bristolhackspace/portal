@@ -274,3 +274,25 @@ class JWK(Base):
     def to_pyjwk(self, private: bool=False) -> PyJWK:
         params = self.to_jwk_data(private)
         return PyJWK(params)
+    
+class OAuthRequest(Base):
+    __tablename__ = "oauth_request"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    token_hash: Mapped[str]
+    session_id: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("session.id", onupdate="CASCADE", ondelete="CASCADE")
+    )
+    client_id: Mapped[UUID] = mapped_column(
+        ForeignKey("oauth_client.id", onupdate="CASCADE", ondelete="CASCADE")
+    )
+    response_type: Mapped[set[str]] = mapped_column(SpaceSeparatedSet())
+    scope: Mapped[set[str]] = mapped_column(SpaceSeparatedSet())
+    state: Mapped[Optional[str]]
+    redirect_uri: Mapped[str]
+    nonce: Mapped[Optional[str]]
+    acr_values: Mapped[Optional[str]]
+
+
+    session: Mapped[Optional["Session"]] = relationship()
+    client: Mapped["OAuthClient"] = relationship()

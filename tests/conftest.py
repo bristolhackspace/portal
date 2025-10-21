@@ -10,6 +10,7 @@ from portal.extensions import db
 def app() -> Flask:
     app = create_app(
         test_config=dict(
+            SERVER_NAME="localhost",
             SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
             REGISTER_EXTENSIONS=False,
             REGISTER_VIEWS=False,
