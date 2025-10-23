@@ -4,7 +4,7 @@ import uuid
 import pytest
 
 from portal.extensions import db, session_manager
-from portal.helpers import build_secure_uri, hash_token
+from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import Session, User
 
 
@@ -160,8 +160,6 @@ def test_authenticate_session(app, client, init_session_manager, user_model, aut
 
     cookie = client.get_cookie(session_manager._state.cookie_name)
     assert cookie is not None
-    id_, secret = cookie.value.split(":")
-    session = db.session.get(Session, uuid.UUID(hex=id_))
+    session = get_from_secure_uri(db, Session, cookie.value, "secret_hash")
     assert session is not None
-    assert session.secret_hash == hash_token(secret)
     assert getattr(session, f"last_{auth_type}_auth") == now

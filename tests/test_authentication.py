@@ -9,7 +9,7 @@ import typing
 import yarl
 
 from portal.extensions import db, authentication, mailer
-from portal.helpers import build_secure_uri, hash_token
+from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import _TestMailer
 
@@ -81,13 +81,11 @@ def test_send_magic_email(app, client, init_authentication, user_model):
 
     cookie = client.get_cookie(authentication._state.cookie_name)
     assert cookie is not None
-    id_, token = cookie.value.split(":")
-    cookie_flow = db.session.get(AuthFlow, uuid.UUID(hex=id_))
 
+    cookie_flow = get_from_secure_uri(db, AuthFlow, cookie.value, "flow_token_hash")
     assert cookie_flow is not None
 
     assert authentication.current_flow == cookie_flow
-    assert cookie_flow.flow_token_hash == hash_token(token)
 
     test_mailer = typing.cast(_TestMailer, mailer._state)
     assert len(test_mailer.captured_emails) == 1

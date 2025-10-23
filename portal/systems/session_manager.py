@@ -6,7 +6,7 @@ import hashlib
 import secrets
 import uuid
 
-from portal.helpers import build_secure_uri, hash_token
+from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import Session, User
 
 
@@ -52,17 +52,10 @@ class SessionManager:
         return state
 
     def load_session(self):
-        parts = request.cookies.get(self._state.cookie_name, "").split(":")
-        if len(parts) != 2:
-            return
-        id_, secret = parts
+        session_uri = request.cookies.get(self._state.cookie_name, "")
 
-        session = self.db.session.get(Session, uuid.UUID(hex=id_))
-
+        session = get_from_secure_uri(self.db, Session, session_uri, "secret_hash")
         if session is None:
-            return
-
-        if not secrets.compare_digest(session.secret_hash, hash_token(secret)):
             return
 
         contexts = self.calculate_auth_contexts(session)
@@ -72,7 +65,7 @@ class SessionManager:
             g.hs_session = session
             g.hs_session_ctx = contexts
 
-            after_this_request(functools.partial(self.update_cookie, session, secret))
+            after_this_request(functools.partial(self.update_cookie, session_uri))
         else:
             self.db.session.delete(session)
         self.db.session.commit()

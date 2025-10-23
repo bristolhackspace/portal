@@ -10,7 +10,7 @@ from flask import Flask, Response, current_app, g, make_response, redirect, rend
 from flask_sqlalchemy import SQLAlchemy
 import yarl
 
-from portal.helpers import build_secure_uri, hash_token
+from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import OAuthClient, OAuthRequest, OAuthResponse
 from portal.systems.jwks import JWKs
 from portal.systems.session_manager import SessionManager
@@ -55,14 +55,8 @@ class OAuth:
     def capture_request(self) -> OAuthRequest:
         request_uri = request.args.get("request_uri")
         if request_uri is not None:
-            parts = request_uri.split(":")
-            if len(parts) != 2:
-                raise OAuthError("invalid_request", "Invalid request_uri")
-            id_, token = parts
-            req = self.db.session.get(OAuthRequest, uuid.UUID(hex=id_))
+            req = get_from_secure_uri(self.db, OAuthRequest, request_uri)
             if req is None:
-                raise OAuthError("invalid_request", "Invalid request_uri")
-            if not secrets.compare_digest(hash_token(token), req.token_hash):
                 raise OAuthError("invalid_request", "Invalid request_uri")
             
             client_id = request.args.get("client_id")
@@ -206,14 +200,9 @@ class OAuth:
         g.oauth_redirect_uri="redirect_uri"
         g.oauth_response_mode="json"
 
-        parts = code.split(":")
-        if len(parts) != 2:
-            raise OAuthError("invalid_request", "Invalid code format")
-        id_, token = parts
-        resp = self.db.session.get(OAuthResponse, uuid.UUID(hex=id_))
+        resp = get_from_secure_uri(self.db, OAuthResponse, code)
+
         if resp is None:
-            raise OAuthError("invalid_request", "Invalid or expired code")
-        if not secrets.compare_digest(hash_token(token), resp.token_hash):
             raise OAuthError("invalid_request", "Invalid or expired code")
         
         params = {}

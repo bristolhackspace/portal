@@ -20,7 +20,7 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
-from portal.helpers import build_secure_uri, hash_token
+from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import Mailer
 from portal.systems.session_manager import SessionManager
@@ -132,17 +132,10 @@ class Authentication:
         return response
 
     def load_flow(self):
-        parts = request.cookies.get(self._state.cookie_name, "").split(":")
-        if len(parts) != 2:
-            return
-        id_, secret = parts
-
-        flow = self.db.session.get(AuthFlow, uuid.UUID(hex=id_))
+        flow_uri = request.cookies.get(self._state.cookie_name, "")
+        flow = get_from_secure_uri(self.db, AuthFlow, flow_uri, attribute="flow_token_hash")
 
         if flow is None:
-            return
-
-        if not secrets.compare_digest(flow.flow_token_hash, hash_token(secret)):
             return
 
         g.flow = flow
