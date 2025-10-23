@@ -152,6 +152,7 @@ class OAuthClient(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     name: Mapped[str]
+    secret_hash: Mapped[Optional[str]]
 
 
 class Role(PkModel):
