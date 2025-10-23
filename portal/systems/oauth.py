@@ -10,6 +10,7 @@ from flask import Flask, Response, current_app, g, make_response, redirect, rend
 from flask_sqlalchemy import SQLAlchemy
 import yarl
 
+from portal.helpers import hash_token
 from portal.models import OAuthClient, OAuthRequest, OAuthResponse
 from portal.systems.jwks import JWKs
 from portal.systems.session_manager import SessionManager
@@ -61,7 +62,7 @@ class OAuth:
             req = self.db.session.get(OAuthRequest, uuid.UUID(hex=id_))
             if req is None:
                 raise OAuthError("invalid_request", "Invalid request_uri")
-            if not secrets.compare_digest(self.hash_secret(token), req.token_hash):
+            if not secrets.compare_digest(hash_token(token), req.token_hash):
                 raise OAuthError("invalid_request", "Invalid request_uri")
             
             client_id = request.args.get("client_id")
@@ -121,7 +122,7 @@ class OAuth:
     
     def build_redirect_url(self, req: OAuthRequest, route: str) -> str:
         token = secrets.token_urlsafe()
-        req.token_hash = self.hash_secret(token)
+        req.token_hash = hash_token(token)
         request_uri = f"{req.id.hex}:{token}"
         return url_for(route, request_uri=request_uri, client_id=req.client.id.hex)
     
@@ -183,7 +184,7 @@ class OAuth:
 
         url = yarl.URL(redirect_uri)
         token = secrets.token_urlsafe()
-        resp.token_hash = self.hash_secret(token)
+        resp.token_hash = hash_token(token)
 
         code = f"{resp.id.hex}:{token}"
         query={"code":code}
@@ -216,7 +217,7 @@ class OAuth:
         resp = self.db.session.get(OAuthResponse, uuid.UUID(hex=id_))
         if resp is None:
             raise OAuthError("invalid_request", "Invalid or expired code")
-        if not secrets.compare_digest(self.hash_secret(token), resp.token_hash):
+        if not secrets.compare_digest(hash_token(token), resp.token_hash):
             raise OAuthError("invalid_request", "Invalid or expired code")
         
         params = {}
@@ -248,9 +249,3 @@ class OAuth:
         
         # Unable to handle as an OAuth error response. Show the error as a local page instead
         return make_response(render_template(template, error=error))
-
-    @staticmethod
-    def hash_secret(secret: str | bytes) -> str:
-        if isinstance(secret, str):
-            secret = secret.encode("utf-8")
-        return hashlib.sha256(secret).hexdigest()

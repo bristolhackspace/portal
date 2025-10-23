@@ -4,6 +4,7 @@ import pytest
 import typing
 
 from portal.extensions import db, oauth
+from portal.helpers import hash_token
 from portal.models import OAuthClient, OAuthRequest
 from portal.systems.oauth import OAuthError
 
@@ -30,7 +31,7 @@ def request_secret():
 def oauth_request(oauth_client, request_secret) -> OAuthRequest:
     req = OAuthRequest(
         id=uuid.uuid4(),
-        token_hash=oauth.hash_secret(request_secret),
+        token_hash=hash_token(request_secret),
         client=oauth_client,
         response_type={"code"},
         scope={"openid", "email"},

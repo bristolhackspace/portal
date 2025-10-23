@@ -9,6 +9,7 @@ import typing
 import yarl
 
 from portal.extensions import db, authentication, mailer
+from portal.helpers import hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import _TestMailer
 
@@ -49,8 +50,8 @@ def flow_model(app_context, user_model, flow_token, email_token):
     flow = AuthFlow(
         id=uuid.uuid4(),
         user=user_model,
-        flow_token_hash=authentication.hash_token(flow_token),
-        email_token_hash=authentication.hash_token(email_token),
+        flow_token_hash=hash_token(flow_token),
+        email_token_hash=hash_token(email_token),
         visual_code=secrets.token_hex(2),
         expiry=datetime.now(timezone.utc) + timedelta(minutes=20)
     )
@@ -84,7 +85,7 @@ def test_send_magic_email(app, client, init_authentication, user_model):
     assert cookie_flow is not None
 
     assert authentication.current_flow == cookie_flow
-    assert cookie_flow.flow_token_hash == authentication.hash_token(token)
+    assert cookie_flow.flow_token_hash == hash_token(token)
 
     test_mailer = typing.cast(_TestMailer, mailer._state)
     assert len(test_mailer.captured_emails) == 1
@@ -94,7 +95,7 @@ def test_send_magic_email(app, client, init_authentication, user_model):
 
     magic_url = yarl.URL(captured_email.kwargs['magic_url'])
     assert magic_url.query["id"] == cookie_flow.id.hex
-    assert authentication.hash_token(magic_url.query["token"]) == cookie_flow.email_token_hash
+    assert hash_token(magic_url.query["token"]) == cookie_flow.email_token_hash
 
 
 def test_verify_magic_link(app, client, init_authentication, flow_model, email_token):

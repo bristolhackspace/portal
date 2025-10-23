@@ -6,6 +6,7 @@ import hashlib
 import secrets
 import uuid
 
+from portal.helpers import hash_token
 from portal.models import Session, User
 
 
@@ -61,7 +62,7 @@ class SessionManager:
         if session is None:
             return
 
-        if not secrets.compare_digest(session.secret_hash, self.hash_secret(secret)):
+        if not secrets.compare_digest(session.secret_hash, hash_token(secret)):
             return
 
         contexts = self.calculate_auth_contexts(session)
@@ -104,7 +105,7 @@ class SessionManager:
 
         # Rotate secret
         secret = secrets.token_urlsafe()
-        session.secret_hash = self.hash_secret(secret)
+        session.secret_hash = hash_token(secret)
 
         for method, auth_time in methods.items():
             match method:
@@ -190,12 +191,6 @@ class SessionManager:
     @property
     def current_context(self) -> set[str]:
         return g.get("hs_session_ctx", set())
-
-    @staticmethod
-    def hash_secret(secret: str | bytes) -> str:
-        if isinstance(secret, str):
-            secret = secret.encode("utf-8")
-        return hashlib.sha256(secret).hexdigest()
 
     @property
     def current_session(self) -> Session | None:

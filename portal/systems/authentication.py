@@ -20,6 +20,7 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
+from portal.helpers import hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import Mailer
 from portal.systems.session_manager import SessionManager
@@ -75,7 +76,7 @@ class Authentication:
 
         flow = AuthFlow(
             id=uuid.uuid4(),
-            flow_token_hash=self.hash_token(flow_token),
+            flow_token_hash=hash_token(flow_token),
             expiry=now + self._state.flow_expiry,
             redirect_uri=redirect_uri
         )
@@ -99,7 +100,7 @@ class Authentication:
         now = datetime.now(timezone.utc)
 
         email_token = secrets.token_urlsafe()
-        flow.email_token_hash=self.hash_token(email_token)
+        flow.email_token_hash=hash_token(email_token)
         flow.visual_code=secrets.token_hex(2)
         flow.expiry=now + self._state.flow_expiry
         flow.user = user
@@ -143,7 +144,7 @@ class Authentication:
         if flow is None:
             return
 
-        if not secrets.compare_digest(flow.flow_token_hash, self.hash_token(secret)):
+        if not secrets.compare_digest(flow.flow_token_hash, hash_token(secret)):
             return
 
         g.flow = flow
@@ -164,7 +165,7 @@ class Authentication:
         if flow.expiry < datetime.now(timezone.utc):
             return None
 
-        if not flow.email_token_hash or not secrets.compare_digest(flow.email_token_hash, self.hash_token(token)):
+        if not flow.email_token_hash or not secrets.compare_digest(flow.email_token_hash, hash_token(token)):
             return None
 
         if commit:
@@ -211,9 +212,3 @@ class Authentication:
             if not flow.totp_verified:
                 return FlowStep.VERIFY_TOTP
         return FlowStep.FINISHED
-
-    @staticmethod
-    def hash_token(secret: str | bytes) -> str:
-        if isinstance(secret, str):
-            secret = secret.encode("utf-8")
-        return hashlib.sha256(secret).hexdigest()
