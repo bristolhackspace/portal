@@ -4,7 +4,7 @@ import pytest
 import typing
 
 from portal.extensions import db, oauth
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import OAuthClient, OAuthRequest
 from portal.systems.oauth import OAuthError
 
@@ -22,16 +22,11 @@ def oauth_client(init_db, app_context) -> OAuthClient:
     db.session.commit()
     return client
 
-
 @pytest.fixture()
-def request_secret():
-    return secrets.token_urlsafe()
-
-@pytest.fixture()
-def oauth_request(oauth_client, request_secret) -> OAuthRequest:
+def oauth_request(oauth_client) -> OAuthRequest:
     req = OAuthRequest(
         id=uuid.uuid4(),
-        token_hash=hash_token(request_secret),
+        token_hash="",
         client=oauth_client,
         response_type={"code"},
         response_mode="query",
@@ -45,6 +40,11 @@ def oauth_request(oauth_client, request_secret) -> OAuthRequest:
     db.session.commit()
     return req
 
+@pytest.fixture()
+def request_secure_uri(oauth_request) -> str:
+    uri = build_secure_uri(oauth_request)
+    db.session.commit()
+    return uri
 
 def test_capture_request(app, init_oauth, client, oauth_client):
     req: OAuthRequest|None = None
@@ -100,7 +100,7 @@ def test_invalid_request(app, init_oauth, client, oauth_client, missing_arg):
     response = client.get("/example", query_string=query_string)
 
 
-def test_capture_request_uri(app, init_oauth, client, request_secret, oauth_request):
+def test_capture_request_uri(app, init_oauth, client, request_secure_uri, oauth_request):
     req: OAuthRequest|None = None
 
     @app.route("/example")
@@ -110,7 +110,7 @@ def test_capture_request_uri(app, init_oauth, client, request_secret, oauth_requ
         return "OK"
 
     query_string = dict(
-        request_uri=f"{oauth_request.id.hex}:{request_secret}",
+        request_uri=request_secure_uri,
         client_id=oauth_request.client.id.hex
     )
 

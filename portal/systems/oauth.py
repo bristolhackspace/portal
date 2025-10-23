@@ -10,7 +10,7 @@ from flask import Flask, Response, current_app, g, make_response, redirect, rend
 from flask_sqlalchemy import SQLAlchemy
 import yarl
 
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import OAuthClient, OAuthRequest, OAuthResponse
 from portal.systems.jwks import JWKs
 from portal.systems.session_manager import SessionManager
@@ -121,9 +121,7 @@ class OAuth:
         return req
     
     def build_redirect_url(self, req: OAuthRequest, route: str) -> str:
-        token = secrets.token_urlsafe()
-        req.token_hash = hash_token(token)
-        request_uri = f"{req.id.hex}:{token}"
+        request_uri = build_secure_uri(req)
         return url_for(route, request_uri=request_uri, client_id=req.client.id.hex)
     
     def authenticate_request(self, req: OAuthRequest, session_manager: SessionManager) -> str|None:
@@ -183,10 +181,8 @@ class OAuth:
         response_mode = g.oauth_response_mode
 
         url = yarl.URL(redirect_uri)
-        token = secrets.token_urlsafe()
-        resp.token_hash = hash_token(token)
-
-        code = f"{resp.id.hex}:{token}"
+        code = build_secure_uri(resp)
+        self.db.session.commit()
         query={"code":code}
         if resp.state:
             query["state"] = resp.state

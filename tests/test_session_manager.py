@@ -4,7 +4,7 @@ import uuid
 import pytest
 
 from portal.extensions import db, session_manager
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import Session, User
 
 
@@ -27,19 +27,13 @@ def user_model(app_context):
     db.session.commit()
     return user
 
-
 @pytest.fixture()
-def session_secret():
-    return secrets.token_urlsafe()
-
-
-@pytest.fixture()
-def session_model(user_model, session_secret, app_context):
+def session_model(user_model, app_context):
     # We set now to a few seconds in the past so we can do some update checks
     now = datetime.now(timezone.utc) - timedelta(seconds=10)
     sess = Session(
         id=uuid.uuid4(),
-        secret_hash=hash_token(session_secret),
+        secret_hash="",
         user=user_model,
         created=now,
         last_active=now,
@@ -51,10 +45,11 @@ def session_model(user_model, session_secret, app_context):
 
 @pytest.fixture()
 def session_cookie(
-    client, app_context, init_session_manager, session_secret, session_model
+    client, app_context, init_session_manager, session_model
 ):
     cookie_name = session_manager._state.cookie_name
-    cookie_val = f"{session_model.id.hex}:{session_secret}"
+    cookie_val = build_secure_uri(session_model)
+    db.session.commit()
     client.set_cookie(cookie_name, cookie_val)
 
 

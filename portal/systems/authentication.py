@@ -20,7 +20,7 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import Mailer
 from portal.systems.session_manager import SessionManager
@@ -72,19 +72,19 @@ class Authentication:
     def begin_flow(self, redirect_uri:str|None=None) -> AuthFlow:
         now = datetime.now(timezone.utc)
 
-        flow_token = secrets.token_urlsafe()
-
         flow = AuthFlow(
             id=uuid.uuid4(),
-            flow_token_hash=hash_token(flow_token),
+            flow_token_hash="",
             expiry=now + self._state.flow_expiry,
             redirect_uri=redirect_uri
         )
 
+        flow_secure_uri = build_secure_uri(flow, "flow_token_hash")
+
         self.db.session.add(flow)
         self.db.session.commit()
 
-        after_this_request(functools.partial(self.set_flow_cookie, flow, flow_token))
+        after_this_request(functools.partial(self.set_flow_cookie, flow_secure_uri))
 
         g.flow = flow
         return flow
@@ -99,14 +99,13 @@ class Authentication:
 
         now = datetime.now(timezone.utc)
 
-        email_token = secrets.token_urlsafe()
-        flow.email_token_hash=hash_token(email_token)
+        flow_id, email_token = build_secure_uri(flow, "email_token_hash", as_tuple=True)
         flow.visual_code=secrets.token_hex(2)
         flow.expiry=now + self._state.flow_expiry
         flow.user = user
 
         magic_url = url_for(
-            magic_link_route, id=flow.id.hex, token=email_token, _external=True
+            magic_link_route, id=flow_id, token=email_token, _external=True
         )
 
         self.db.session.commit()
@@ -121,12 +120,11 @@ class Authentication:
             )
 
     def set_flow_cookie(
-        self, flow: AuthFlow, flow_token: str, response: Response
+        self, flow_secure_uri: str, response: Response
     ) -> Response:
-        value = f"{flow.id.hex}:{flow_token}"
         response.set_cookie(
             key=self._state.cookie_name,
-            value=value,
+            value=flow_secure_uri,
             max_age=None,
             httponly=True,
             secure=self._state.cookie_secure,

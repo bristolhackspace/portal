@@ -9,7 +9,7 @@ import typing
 import yarl
 
 from portal.extensions import db, authentication, mailer
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import _TestMailer
 
@@ -37,21 +37,14 @@ def user_model(app_context):
     db.session.commit()
     return user
 
-@pytest.fixture()
-def flow_token():
-    return secrets.token_urlsafe()
 
 @pytest.fixture()
-def email_token():
-    return secrets.token_urlsafe()
-
-@pytest.fixture()
-def flow_model(app_context, user_model, flow_token, email_token):
+def flow_model(app_context, user_model):
     flow = AuthFlow(
         id=uuid.uuid4(),
         user=user_model,
-        flow_token_hash=hash_token(flow_token),
-        email_token_hash=hash_token(email_token),
+        flow_token_hash="",
+        email_token_hash="",
         visual_code=secrets.token_hex(2),
         expiry=datetime.now(timezone.utc) + timedelta(minutes=20)
     )
@@ -60,11 +53,20 @@ def flow_model(app_context, user_model, flow_token, email_token):
     return flow
 
 @pytest.fixture()
+def email_token(flow_model) -> tuple[str, str]:
+    flow_id, token = build_secure_uri(flow_model, "email_token_hash")
+    db.session.commit()
+    return (flow_id, token)
+
+
+@pytest.fixture()
 def flow_cookie(
-    client, app_context, init_authentication, flow_token, flow_model
+    client, app_context, init_authentication, flow_model
 ):
+    
     cookie_name = authentication._state.cookie_name
-    cookie_val = f"{flow_model.id.hex}:{flow_token}"
+    cookie_val = build_secure_uri(flow_model, "flow_token_hash")
+    db.session.commit()
     client.set_cookie(cookie_name, cookie_val)
 
 
@@ -106,8 +108,8 @@ def test_verify_magic_link(app, client, init_authentication, flow_model, email_t
         verified_flow = authentication.verify_magic_link(request, commit=False)
 
     response = client.get("/verify_magic", query_string=dict(
-        id=flow_model.id.hex,
-        token=email_token
+        id=email_token[0],
+        token=email_token[1]
     ))
 
     assert verified_flow is not None
@@ -123,8 +125,8 @@ def test_verify_magic_link_invalid_token(app, client, init_authentication, flow_
         verified_flow = authentication.verify_magic_link(request, commit=False)
 
     response = client.get("/verify_magic", query_string=dict(
-        id=flow_model.id.hex,
-        token=email_token + "a"
+        id=email_token[0],
+        token=email_token[1] + "a"
     ))
 
     assert verified_flow is None
@@ -141,8 +143,8 @@ def test_verify_magic_link_expired(app, client, init_authentication, flow_model,
         verified_flow = authentication.verify_magic_link(request, commit=False)
 
     response = client.get("/verify_magic", query_string=dict(
-        id=flow_model.id.hex,
-        token=email_token
+        id=email_token[0],
+        token=email_token[1]
     ))
 
     assert verified_flow is None

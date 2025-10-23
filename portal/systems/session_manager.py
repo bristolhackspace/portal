@@ -6,7 +6,7 @@ import hashlib
 import secrets
 import uuid
 
-from portal.helpers import hash_token
+from portal.helpers import build_secure_uri, hash_token
 from portal.models import Session, User
 
 
@@ -104,8 +104,7 @@ class SessionManager:
             g.hs_session = session
 
         # Rotate secret
-        secret = secrets.token_urlsafe()
-        session.secret_hash = hash_token(secret)
+        secure_uri = build_secure_uri(session)
 
         for method, auth_time in methods.items():
             match method:
@@ -123,15 +122,14 @@ class SessionManager:
         self.db.session.commit()
 
         # TODO: remove update_cookie call from load_session as this will overwrite it
-        after_this_request(functools.partial(self.update_cookie, session, secret))
+        after_this_request(functools.partial(self.update_cookie, secure_uri))
 
     def update_cookie(
-        self, session: Session, secret: str, response: Response
+        self, secure_uri: str, response: Response
     ) -> Response:
-        value = f"{session.id.hex}:{secret}"
         response.set_cookie(
             key=self._state.cookie_name,
-            value=value,
+            value=secure_uri,
             max_age=self._state.cookie_max_age,
             httponly=True,
             secure=self._state.cookie_secure,
