@@ -34,6 +34,7 @@ def oauth_request(oauth_client, request_secret) -> OAuthRequest:
         token_hash=hash_token(request_secret),
         client=oauth_client,
         response_type={"code"},
+        response_mode="query",
         scope={"openid", "email"},
         redirect_uri="http://example.com",
         state="123",
