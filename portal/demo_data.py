@@ -14,7 +14,8 @@ def make_demo_data():
 
     demo_client = OAuthClient(
         id=uuid.UUID(hex="aaf36b4c-5e88-409f-863d-24f12f0ec111"),
-        name="Demo client"
+        name="Demo client",
+        redirect_uris="https://oauth.tools/callback/code"
     )
     db.session.add(demo_client)
 

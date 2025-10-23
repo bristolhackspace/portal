@@ -153,6 +153,7 @@ class OAuthClient(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True)
     name: Mapped[str]
     secret_hash: Mapped[Optional[str]]
+    redirect_uris: Mapped[str]
 
 
 class Role(PkModel):
@@ -214,7 +215,7 @@ class JWK(Base):
             private_params=jwk,
             created=datetime.now(tz=timezone.utc),
         )
-    
+
     @classmethod
     def _new_rsa_key(cls, alg: str) -> "JWK":
         key = generate_rsa_private_key(65537, 2048)
@@ -235,7 +236,7 @@ class JWK(Base):
             private_params=private_params,
             created=datetime.now(tz=timezone.utc),
         )
-    
+
     @classmethod
     def _new_ec_key(cls, alg: str) -> "JWK":
         curve = {
@@ -259,7 +260,7 @@ class JWK(Base):
             private_params=private_params,
             created=datetime.now(tz=timezone.utc),
         )
-    
+
     def to_jwk_data(self, private: bool=False) -> dict[str, Any]:
         params = {
             "kid": self.id.hex,
@@ -271,11 +272,11 @@ class JWK(Base):
         if private:
             params.update(self.private_params)
         return params
-    
+
     def to_pyjwk(self, private: bool=False) -> PyJWK:
         params = self.to_jwk_data(private)
         return PyJWK(params)
-    
+
 class OAuthRequest(Base):
     __tablename__ = "oauth_request"
 

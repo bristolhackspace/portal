@@ -1,5 +1,5 @@
 
-
+import base64
 from datetime import datetime, timedelta, timezone
 import hashlib
 import jwt
@@ -51,18 +51,18 @@ class OAuth:
     def _state(self) -> _State:
         state = current_app.extensions["hs.portal.oauth"]
         return state
-    
+
     def capture_request(self) -> OAuthRequest:
         request_uri = request.args.get("request_uri")
         if request_uri is not None:
             req = get_from_secure_uri(self.db, OAuthRequest, request_uri)
             if req is None:
                 raise OAuthError("invalid_request", "Invalid request_uri")
-            
+
             client_id = request.args.get("client_id")
             if client_id != req.client_id.hex:
                 raise OAuthError("invalid_request", "Invalid request_uri")
-            
+
             # We save these in case they are needed for an error response later
             g.oauth_redirect_uri = req.redirect_uri
             g.oauth_response_mode = req.response_mode
@@ -75,11 +75,11 @@ class OAuth:
         client = self.db.session.get(OAuthClient, uuid.UUID(hex=client_id)) if client_id else None
         if client is None:
             raise OAuthError("unauthorized_client", "client_id not recognised or unauthorized")
-        
-        redirect_uri = request.args.get("redirect_uri")
-        if redirect_uri is None:
-            raise OAuthError("invalid_request", "Missing redirect_uri")
-        # TODO validate redirect URI against client
+
+        allowed_redirect_uris = client.redirect_uris.split()
+        redirect_uri = request.args.get("redirect_uri", allowed_redirect_uris[0])
+        if redirect_uri not in allowed_redirect_uris:
+            raise OAuthError("invalid_request", "Invalid redirect_uri")
 
         response_type = set(request.args.get("response_type", "").split())
         if response_type != {"code"}:
@@ -113,18 +113,18 @@ class OAuth:
         )
         self.db.session.add(req)
         return req
-    
+
     def build_redirect_url(self, req: OAuthRequest, route: str) -> str:
         request_uri = build_secure_uri(req)
         return url_for(route, request_uri=request_uri, client_id=req.client.id.hex)
-    
+
     def authenticate_request(self, req: OAuthRequest, session_manager: SessionManager) -> str|None:
         current_session = session_manager.current_session
         if not current_session:
             return None
-        
+
         req.session=current_session
-        
+
         session_acr = session_manager.current_context
 
         if req.acr_values:
@@ -137,12 +137,12 @@ class OAuth:
             return "plastic"
         else:
             return None
-        
-    
+
+
     def build_response(self, req: OAuthRequest, acr: str|None, jwks: JWKs) -> OAuthResponse:
         if req.session is None:
             raise ValueError("Request must be authenticated with a session")
-        
+
         now = datetime.now(timezone.utc)
         signing_key = jwks.get_signing_key()
 
@@ -169,7 +169,7 @@ class OAuth:
         self.db.session.add(response)
 
         return response
-    
+
     def process_response(self, resp: OAuthResponse) -> Response:
         redirect_uri = g.oauth_redirect_uri
         response_mode = g.oauth_response_mode
@@ -190,12 +190,36 @@ class OAuth:
             return make_response(redirect(str(url)))
         else:
             raise RuntimeError("Unknown response_mode")
-        
-    
+
+
     def handle_token_request(self) -> Response:
+        authorization = request.headers.get("Authorization")
+        client = None
+        if authorization:
+            parts = authorization.split()
+            if len(parts) != 2:
+                raise OAuthError("invalid_request", "Invalid Authorization header format")
+            scheme, credential = parts
+            if scheme != "Basic":
+                raise OAuthError("invalid_request", "Unsupported Authorization scheme")
+            credential = base64.urlsafe_b64decode(credential).decode("utf-8")
+            client = get_from_secure_uri(self.db, OAuthClient, credential)
+        elif "client_id" in request.args:
+            client_id = request.args["client_id"]
+            public_client = self.db.session.get(OAuthClient, uuid.UUID(hex=client_id))
+            if public_client and public_client.secret_hash is None:
+                client = public_client
+
+        if client is None:
+            raise OAuthError("access_denied", "Failed to authenticate client")
+
+        allowed_redirect_uris = client.redirect_uris.split()
         grant_type=request.args.get("grant_type")
-        redirect_uri=request.args.get("redirect_uri")
+        redirect_uri=request.args.get("redirect_uri", allowed_redirect_uris[0])
         code=request.args.get("code", "")
+
+        if redirect_uri not in allowed_redirect_uris:
+            raise OAuthError("invalid_request", "Invalid redirect_uri")
 
         g.oauth_redirect_uri="redirect_uri"
         g.oauth_response_mode="json"
@@ -204,7 +228,7 @@ class OAuth:
 
         if resp is None:
             raise OAuthError("invalid_request", "Invalid or expired code")
-        
+
         params = {}
         if resp.id_token:
             params["id_token"] = resp.id_token
@@ -212,7 +236,7 @@ class OAuth:
             params["state"] = resp.state
 
         return make_response(params)
-        
+
     def handle_error(self, error: OAuthError, template: str) -> Response:
         oauth_redirect_uri = g.get("oauth_redirect_uri")
         oauth_response_mode = g.get("oauth_response_mode", "query")
@@ -231,6 +255,6 @@ class OAuth:
                 return make_response(redirect(str(url)))
             elif oauth_response_mode == "json":
                 return make_response(query)
-        
+
         # Unable to handle as an OAuth error response. Show the error as a local page instead
         return make_response(render_template(template, error=error))
