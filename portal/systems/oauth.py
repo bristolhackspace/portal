@@ -1,18 +1,22 @@
 
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
+import jwt
 import secrets
+import urllib.parse
 import uuid
-from flask import Flask, current_app, request, url_for
+from flask import Flask, Response, current_app, g, make_response, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
+import yarl
 
-from portal.models import OAuthClient, OAuthRequest
+from portal.models import OAuthClient, OAuthRequest, OAuthResponse
+from portal.systems.jwks import JWKs
 from portal.systems.session_manager import SessionManager
 
 
 class OAuthError(Exception):
-    def __init__(self, error: str, error_description: str|None=None, redirect_uri: str|None=None, response_mode: str|None=None):
+    def __init__(self, error: str, error_description: str|None=None):
         super().__init__(error)
         self.error=error
         self.error_description=error_description
@@ -20,7 +24,7 @@ class OAuthError(Exception):
 
 class _State:
     def __init__(self, app: Flask):
-        pass
+        self.id_token_expiry = self.as_timedelta(app.config.get("OAUTH_ID_TOKEN_EXPIRY", timedelta(hours=1)))
 
     @staticmethod
     def as_timedelta(value: int | float | timedelta) -> timedelta:
@@ -63,6 +67,11 @@ class OAuth:
             client_id = request.args.get("client_id")
             if client_id != req.client_id.hex:
                 raise OAuthError("invalid_request", "Invalid request_uri")
+            
+            # We save these in case they are needed for an error response later
+            g.oauth_redirect_uri = req.redirect_uri
+            g.oauth_response_mode = req.response_mode
+
             return req
 
         # Client ID and redirect URI should be verified first as these may be used
@@ -83,9 +92,13 @@ class OAuth:
 
         response_mode = "query"
 
+        # We save these in case they are needed for an error response later
+        g.oauth_redirect_uri = redirect_uri
+        g.oauth_response_mode = response_mode
+
         scope = set(request.args.get("scope", "").split())
         if not scope:
-            raise OAuthError("invalid_request", "Missing scope parameter", redirect_uri, response_mode)
+            raise OAuthError("invalid_request", "Missing scope parameter")
 
         state = request.args.get("state")
         nonce = request.args.get("nonce")
@@ -96,6 +109,7 @@ class OAuth:
             token_hash="",
             client=client,
             response_type=response_type,
+            response_mode=response_mode,
             scope=scope,
             state=state,
             redirect_uri=redirect_uri,
@@ -112,8 +126,11 @@ class OAuth:
         return url_for(route, request_uri=request_uri, client_id=req.client.id.hex)
     
     def authenticate_request(self, req: OAuthRequest, session_manager: SessionManager) -> str|None:
-        if not session_manager.current_session:
+        current_session = session_manager.current_session
+        if not current_session:
             return None
+        
+        req.session=current_session
         
         session_acr = session_manager.current_context
 
@@ -127,6 +144,110 @@ class OAuth:
             return "plastic"
         else:
             return None
+        
+    
+    def build_response(self, req: OAuthRequest, acr: str|None, jwks: JWKs) -> OAuthResponse:
+        if req.session is None:
+            raise ValueError("Request must be authenticated with a session")
+        
+        now = datetime.now(timezone.utc)
+        signing_key = jwks.get_signing_key()
+
+        params = {}
+
+        id_token = {
+            "iss": "http://localhost",
+            "sub": f"user_{req.session.user.id}",
+            "aud": [req.client.id.hex],
+            "exp": int((now+self._state.id_token_expiry).timestamp()),
+            "iat": int(now.timestamp()),
+        }
+        if req.nonce:
+            id_token["nonce"] = req.nonce
+        if acr:
+            id_token["acr"] = acr
+
+        response = OAuthResponse(
+            id=uuid.uuid4(),
+            token_hash="",
+            id_token=jwt.encode(id_token, signing_key, headers={"kid": signing_key.key_id}),
+            state=req.state
+        )
+        self.db.session.add(response)
+
+        return response
+    
+    def process_response(self, resp: OAuthResponse) -> Response:
+        redirect_uri = g.oauth_redirect_uri
+        response_mode = g.oauth_response_mode
+
+        url = yarl.URL(redirect_uri)
+        token = secrets.token_urlsafe()
+        resp.token_hash = self.hash_secret(token)
+
+        code = f"{resp.id.hex}:{token}"
+        query={"code":code}
+        if resp.state:
+            query["state"] = resp.state
+
+        if response_mode == "query":
+            url = url.update_query(**query)
+            return make_response(redirect(str(url)))
+        elif response_mode == "fragment":
+            qs = urllib.parse.urlencode(query)
+            url=url.with_fragment(qs)
+            return make_response(redirect(str(url)))
+        else:
+            raise RuntimeError("Unknown response_mode")
+        
+    
+    def handle_token_request(self) -> Response:
+        grant_type=request.args.get("grant_type")
+        redirect_uri=request.args.get("redirect_uri")
+        code=request.args.get("code", "")
+
+        g.oauth_redirect_uri="redirect_uri"
+        g.oauth_response_mode="json"
+
+        parts = code.split(":")
+        if len(parts) != 2:
+            raise OAuthError("invalid_request", "Invalid code format")
+        id_, token = parts
+        resp = self.db.session.get(OAuthResponse, uuid.UUID(hex=id_))
+        if resp is None:
+            raise OAuthError("invalid_request", "Invalid or expired code")
+        if not secrets.compare_digest(self.hash_secret(token), resp.token_hash):
+            raise OAuthError("invalid_request", "Invalid or expired code")
+        
+        params = {}
+        if resp.id_token:
+            params["id_token"] = resp.id_token
+        if resp.state:
+            params["state"] = resp.state
+
+        return make_response(params)
+        
+    def handle_error(self, error: OAuthError, template: str) -> Response:
+        oauth_redirect_uri = g.get("oauth_redirect_uri")
+        oauth_response_mode = g.get("oauth_response_mode", "query")
+
+        if oauth_redirect_uri:
+            url = yarl.URL(oauth_redirect_uri)
+            query = {"error": error.error}
+            if error.error_description:
+                query["error_description"] = error.error_description
+            if oauth_response_mode == "query":
+                url = url.update_query(**query)
+                return make_response(redirect(str(url)))
+            elif oauth_response_mode == "fragment":
+                qs = urllib.parse.urlencode(query)
+                url=url.with_fragment(qs)
+                return make_response(redirect(str(url)))
+            elif oauth_response_mode == "json":
+                return make_response(query)
+        
+        # Unable to handle as an OAuth error response. Show the error as a local page instead
+        return make_response(render_template(template, error=error))
 
     @staticmethod
     def hash_secret(secret: str | bytes) -> str:

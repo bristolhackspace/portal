@@ -1,6 +1,6 @@
 
 import typing
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, Response, redirect, render_template, request, url_for
 from flask_wtf import FlaskForm
 from wtforms import EmailField
 from wtforms.validators import DataRequired
@@ -21,7 +21,9 @@ def index():
 
     step = authentication.try_authenticate(session_manager, "main.index")
 
-    if step == FlowStep.VERIFY_EMAIL:
+    if isinstance(step, Response):
+        return step
+    elif step == FlowStep.VERIFY_EMAIL:
         login_poll_url = url_for(".poll")
         login_redirect = url_for(".index")
         return render_template("login/pending.html.j2", flow=flow, login_poll_url=login_poll_url, login_redirect=login_redirect)
