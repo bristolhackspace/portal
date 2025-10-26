@@ -1,34 +1,30 @@
-from flask import Blueprint, redirect, url_for
+from authlib.oauth2 import OAuth2Error
+from flask import Blueprint, redirect, url_for, request
 
 from portal.extensions import db, jwks, oauth, session_manager, authentication
-from portal.systems.oauth import OAuthError
 
 bp = Blueprint("oauth", __name__, url_prefix="/oauth")
 
 @bp.route("/authorize")
 def authorize():
-    req = oauth.capture_request()
-    acr = oauth.authenticate_request(req, session_manager)
-    if acr is None:
-        redirect_uri = oauth.build_redirect_url(req, "oauth.authorize")
-        authentication.begin_flow(redirect_uri)
-        db.session.commit()
-        return redirect(url_for("login.index"))
-    
-    resp = oauth.build_response(req, acr, jwks)
+    current_session = session_manager.current_session
 
-    flask_response = oauth.process_response(resp)
-    db.session.commit()
-    return flask_response
+    if current_session is None:
+        authentication.begin_flow(request.url)
+        return redirect(url_for("login.index"))
+
+    try:
+        grant = oauth.get_consent_grant(current_session.user)
+    except OAuth2Error as error:
+        return oauth.handle_error_response(error)
+
+    return oauth.create_authorization_response(grant, current_session.user)
+
 
 @bp.route("/token")
-def token():
-    return oauth.handle_token_request()
+def issue_token():
+    return oauth.create_token_response()
 
 @bp.route(".well-known/openid-configuration")
 def openid_configuration():
     return {}
-
-@bp.errorhandler(OAuthError)
-def handle_oauth_error(e):
-    return oauth.handle_error(e, "oauth/error.html.j2")

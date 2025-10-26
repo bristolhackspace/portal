@@ -17,7 +17,7 @@ def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: Literal
 @overload
 def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: Literal[True]=True) -> tuple[str,str]: ...
 
-def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: bool=False) -> str|tuple[str,str]
+def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: bool=False) -> str|tuple[str,str]:
     obj_id = obj.id.hex # type: ignore
     token = secrets.token_urlsafe()
     setattr(obj, attribute, hash_token(token))

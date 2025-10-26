@@ -97,7 +97,7 @@ class SessionManager:
             g.hs_session = session
 
         # Rotate secret
-        secure_uri = build_secure_uri(session)
+        secure_uri = build_secure_uri(session, "secret_hash")
 
         for method, auth_time in methods.items():
             match method:
