@@ -35,11 +35,11 @@ class _BaseMailer(ABC):
 
 class _SmtpMailer(_BaseMailer):
     def __init__(self, app: Flask):
-        self.port = current_app.config.get("SMTP_PORT", 465)
-        self.host = current_app.config["SMTP_HOST"]
-        self.username = current_app.config["SMTP_USERNAME"]
-        self.password = current_app.config["SMTP_PASSWORD"]
-        self.extra_headers: dict[str, str] = current_app.config.get("SMTP_HEADERS", {})
+        self.port = app.config.get("SMTP_PORT", 465)
+        self.host = app.config["SMTP_HOST"]
+        self.username = app.config["SMTP_USERNAME"]
+        self.password = app.config["SMTP_PASSWORD"]
+        self.extra_headers: dict[str, str] = app.config.get("SMTP_HEADERS", {})
 
     def raw_send_email(
         self, sender: str, receiver: str, text: str, html: str | None, subject: str
