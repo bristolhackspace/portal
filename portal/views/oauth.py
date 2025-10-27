@@ -28,3 +28,7 @@ def issue_token():
 @bp.route(".well-known/openid-configuration")
 def openid_configuration():
     return {}
+
+@bp.route("certs")
+def certs():
+    return jwks.get_key_set().as_dict()
