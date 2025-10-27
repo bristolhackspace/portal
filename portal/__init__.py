@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import tomllib
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from flask import Flask
 
@@ -45,6 +46,8 @@ def create_app(test_config=None):
     from . import demo_data
     app.register_blueprint(demo_data.bp)
 
+    if app.config.get("PROXY_FIX", False):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     return app
 
