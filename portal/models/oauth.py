@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import secrets
-from authlib.oauth2.rfc6749 import AuthorizationCodeMixin, ClientMixin, TokenMixin, list_to_scope, scope_to_list
+from authlib.oauth2.rfc6749 import ClientMixin, TokenMixin, list_to_scope, scope_to_list
+from authlib.oidc.core import AuthorizationCodeMixin
 from typing import Optional
 from sqlalchemy import ForeignKey
 from uuid import UUID
@@ -125,3 +126,16 @@ class AuthorizationCode(PkModel, AuthorizationCodeMixin):
 
     def get_scope(self):
         return self.scope
+
+    def get_auth_time(self):
+        return self.auth_time.timestamp()
+
+    def get_acr(self):
+        return self.acr
+
+    def get_amr(self):
+        return self.amr.split() if self.amr else []
+
+    def get_nonce(self):
+        return self.nonce
+

@@ -82,6 +82,10 @@ class SessionManager:
         :param user: User to authenticate
         :param methods: Dictionary containing authentication method names and timestamps
         """
+
+        if not methods:
+            raise ValueError("Authentication methods cannot be empty")
+
         now = datetime.now(timezone.utc)
 
         session: Session | None = g.get("hs_session")
@@ -95,6 +99,9 @@ class SessionManager:
             session = Session(id=uuid.uuid4(), created=now, user=user, last_active=now)
             self.db.session.add(session)
             g.hs_session = session
+            latest_auth_time = datetime.fromtimestamp(0, timezone.utc)
+        else:
+            latest_auth_time = session.last_auth
 
         # Rotate secret
         secure_uri = build_secure_uri(session, "secret_hash")
@@ -111,6 +118,11 @@ class SessionManager:
                     session.last_passkey_auth = auth_time
                 case _:
                     raise ValueError(f"Invalid method {method}")
+
+            if auth_time > latest_auth_time:
+                latest_auth_time = auth_time
+
+        session.last_auth = latest_auth_time
 
         self.db.session.commit()
 
@@ -186,3 +198,12 @@ class SessionManager:
     @property
     def current_session(self) -> Session | None:
         return g.get("hs_session")
+
+    def find_context(self, acr_values: list[str]|None) -> str|None:
+        if not acr_values:
+            acr_values = ["bronze", "plastic"]
+        available = self.current_context
+        for acr in acr_values:
+            if acr in available:
+                return acr
+        return None

@@ -1,5 +1,5 @@
 
-
+from authlib.jose import KeySet, Key
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from flask import Flask, current_app
@@ -40,25 +40,20 @@ class JWKs:
     def _state(self) -> _State:
         state = current_app.extensions["hs.portal.jwks"]
         return state
-    
+
     def _create_new_key(self) -> JWK:
         jwk = JWK.new_from_alg(self._state.signing_alg)
         self.db.session.add(jwk)
         return jwk
-    
-    def get_signing_key(self) -> PyJWK:
+
+    def get_signing_key(self) -> JWK:
         query = sa.select(JWK).order_by(JWK.created.desc()).limit(1)
-        return self.db.session.execute(query).scalar_one().to_pyjwk(private=True)
-    
-    def get_jwks_json(self) -> dict[str, Any]:
+        return self.db.session.execute(query).scalar_one()
+
+    def get_key_set(self) -> KeySet:
         query = sa.select(JWK).order_by(JWK.created.desc())
-        keys = list(self.db.session.execute(query).scalars())
-
-        result = {"keys": []}
-
-        for key in keys:
-            result["keys"].append(key.to_jwk_data())
-        return result
+        keys = self.db.session.execute(query).scalars()
+        return KeySet(k.to_key() for k in keys)
 
     def rotate_keys(self):
         query = sa.select(JWK).order_by(JWK.created.desc())
@@ -72,6 +67,6 @@ class JWKs:
         keys_to_delete = keys[self._state.keys_to_keep:]
         for key in keys_to_delete:
             self.db.session.delete(key)
-        
+
         self.db.session.commit()
 
