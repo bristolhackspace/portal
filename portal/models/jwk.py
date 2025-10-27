@@ -1,13 +1,9 @@
+import typing
 from portal.models.base import Base, UTCDateTime
 
-
-from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1, SECP384R1, SECP521R1, generate_private_key as generate_ec_private_key
-from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key as generate_rsa_private_key
-from jwt import PyJWK
-from jwt.algorithms import ECAlgorithm, HMACAlgorithm, RSAAlgorithm
 from sqlalchemy import JSON
 from sqlalchemy.orm import Mapped, mapped_column
-
+from authlib.jose import Key, JsonWebKey, OctKey, RSAKey
 
 import secrets
 import uuid
@@ -40,58 +36,45 @@ class JWK(Base):
 
     @classmethod
     def _new_hmac_key(cls, alg: str) -> "JWK":
-        key_size = int(alg[2:])//8
-        k = secrets.token_bytes(key_size)
-        jwk = HMACAlgorithm.to_jwk(k, as_dict=True)
+        key_size = int(alg[2:])
+        kid = uuid.uuid4()
+        key: OctKey = JsonWebKey.generate_key("oct", key_size, is_private=True, options=dict(kid=kid.hex))
 
-        kty = jwk.pop("kty")
-
-        return cls(
-            id=uuid.uuid4(),
-            kty=kty,
-            alg=alg,
-            private_params=jwk,
-            created=datetime.now(tz=timezone.utc),
-        )
+        return cls._save_key(alg, key)
 
     @classmethod
     def _new_rsa_key(cls, alg: str) -> "JWK":
-        key = generate_rsa_private_key(65537, 2048)
-        private_params = RSAAlgorithm.to_jwk(key, as_dict=True)
+        kid = uuid.uuid4()
+        key: RSAKey = JsonWebKey.generate_key("RSA", 2048, is_private=True, options=dict(kid=kid.hex))
 
-        public_params = {
-            "n": private_params.pop("n"),
-            "e": private_params.pop("e"),
-            "key_ops": ["verify"]
-        }
-        kty = private_params.pop("kty")
-
-        return cls(
-            id=uuid.uuid4(),
-            kty=kty,
-            alg=alg,
-            public_params=public_params,
-            private_params=private_params,
-            created=datetime.now(tz=timezone.utc),
-        )
+        return cls._save_key(alg, key)
 
     @classmethod
     def _new_ec_key(cls, alg: str) -> "JWK":
         curve = {
-            "ES256": SECP256R1,
-            "ES384": SECP384R1,
-            "ES512": SECP521R1
+            "ES256": "P-256",
+            "ES384": "P-384",
+            "ES512": "P-521"
         }[alg]
 
-        key = generate_ec_private_key(curve())
-        public_params = ECAlgorithm.to_jwk(key, as_dict=True)
-        private_params = {
-            "d": public_params.pop("d")
-        }
-        kty = public_params.pop("kty")
+        kid = uuid.uuid4()
+        key: RSAKey = JsonWebKey.generate_key("EC", curve, is_private=True, options=dict(kid=kid.hex))
+
+        return cls._save_key(alg, key)
+
+    @classmethod
+    def _save_key(cls, alg: str, key: Key):
+        public_params = typing.cast(dict[str, Any], key.as_dict())
+        private_params = typing.cast(dict[str, Any], key.as_dict(is_private=True))
+
+        kty = private_params.pop("kty")
+        private_params.pop("kid")
+
+        kid = uuid.UUID(hex=public_params.pop("kty"))
+        public_params.pop("kid")
 
         return cls(
-            id=uuid.uuid4(),
+            id=kid,
             kty=kty,
             alg=alg,
             public_params=public_params,
@@ -105,12 +88,13 @@ class JWK(Base):
             "alg": self.alg,
             "kty": self.kty
         }
-        if self.public_params:
-            params.update(self.public_params)
+
         if private:
             params.update(self.private_params)
+        else:
+            params.update(self.public_params)
         return params
 
-    def to_pyjwk(self, private: bool=False) -> PyJWK:
+    def to_key(self, private: bool=False) -> Key:
         params = self.to_jwk_data(private)
-        return PyJWK(params)
+        return JsonWebKey.import_key(params)

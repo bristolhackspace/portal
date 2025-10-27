@@ -13,7 +13,7 @@ session_manager = SessionManager(db)
 mailer = Mailer()
 authentication = Authentication(mailer, db)
 jwks = JWKs(db)
-oauth = OAuth(db)
+oauth = OAuth(db, jwks, session_manager)
 
 def init_app(app: Flask):
     db.init_app(app)

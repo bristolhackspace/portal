@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 from portal.models.role import Role
@@ -25,12 +25,30 @@ class Session(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     created: Mapped[datetime] = mapped_column(UTCDateTime())
     last_active: Mapped[datetime] = mapped_column(UTCDateTime())
+    last_auth: Mapped[datetime] = mapped_column(UTCDateTime())
     last_email_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_keyfob_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
     user: Mapped["User"] = relationship(back_populates="sessions")
+
+    def calculate_amr(self) -> set[str]:
+        amr = set()
+
+        if self.last_email_auth:
+            amr.add("email")
+        if self.last_totp_auth:
+            amr.add("otp")
+        if self.last_passkey_auth:
+            amr.add("hwk")
+        if self.last_keyfob_auth:
+            amr.add("sc")
+
+        if len(amr) >= 2 and ("otp" in amr or "hwk" in amr):
+            amr.add("mfa")
+
+        return amr
 
 
 class User(PkModel):
@@ -42,3 +60,6 @@ class User(PkModel):
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user")
     roles: Mapped[list["Role"]] = relationship("Role", secondary=user_role_association)
+
+    def get_sub(self):
+        return f"user_{self.id}"
