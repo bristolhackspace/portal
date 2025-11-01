@@ -207,3 +207,11 @@ class SessionManager:
             if acr in available:
                 return acr
         return None
+
+    def logout(self):
+        sess = self.current_session
+        if sess is None:
+            return
+
+        self.db.session.delete(sess)
+        self.db.session.commit()

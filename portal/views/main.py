@@ -12,3 +12,8 @@ def index():
     apps = db.session.execute(query).scalars()
 
     return render_template("main/index.html.j2", apps=apps)
+
+@bp.route("/logout")
+def logout():
+    session_manager.logout()
+    return redirect(url_for(".index"))
