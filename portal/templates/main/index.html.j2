@@ -4,6 +4,14 @@
 
 {% block contents %}
 <div class="container">
-    Hello world
+    <ul class="app-grid">
+    {% for app in apps %}
+        <li>
+            <h2>{{ app.name }}</h2>
+            <p>{{ app.description }}</p>
+            <a class="button" href="{{ app.url }}" aria-label="Open {{ app.name }}">Open</a>
+        </li>
+    {% endfor %}
+    </ul>
 </div>
 {% endblock %}
