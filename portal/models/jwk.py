@@ -68,9 +68,9 @@ class JWK(Base):
         private_params = typing.cast(dict[str, Any], key.as_dict(is_private=True))
 
         kty = private_params.pop("kty")
-        private_params.pop("kid")
+        kid = uuid.UUID(hex=private_params.pop("kid"))
 
-        kid = uuid.UUID(hex=public_params.pop("kty"))
+        public_params.pop("kty")
         public_params.pop("kid")
 
         return cls(
