@@ -10,7 +10,7 @@
     "Avenir Next", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
     "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
     --header-font: "ocr-a-extended", sans-serif;
-    --grid-maxWidth: 100rem;
+    --grid-maxWidth: 120rem;
     --grid-gutter: 2rem;
     --col-gap: 0.8rem;
     --row-gap: 1.0rem;
@@ -117,7 +117,7 @@ dd {
 .navbar {
     display: flex;
     flex-wrap: wrap;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: space-between;
     align-items: center;
     gap: var(--col-gap);
@@ -230,11 +230,20 @@ textarea {
 }
 
 .button {
+    display: block;
     line-height: 4.0rem;
     padding: 0 2.0rem;
     border: none;
     border-radius: var(--border-radius);
     background-color: var(--button-color);
+    text-decoration: none;
+    color: black;
+    padding: 0.2rem;
+    margin: var(--row-gap) var(--col-gap);
+}
+
+.button:visited {
+    color: black;
 }
 
 .button:hover {
@@ -447,54 +456,8 @@ Defaulting to 3 for the User bookings*/
 .cancel-button:visited {
     color: #fff;
 }
-.extend-button {
-    background-color: #d17308;
-    border-radius: 5px;
-    border: none;
-    color: #fff;
-    cursor: pointer;
-    display: block;
-    padding: 0.6rem 2rem;
-    text-align: center;
-    text-decoration: none;
-}
-.extend-button:before {
-    content: url(../images/extend.svg);
-    margin-right: 0.5rem;
-}
-.extend-button:visited {
-    color:#fff;
-}
 
-.extend-button.no-icon:before {
-    content: '';
-    margin-right: none;
-}
-
-.accordion {
-  background-color: #fff1e3;
-  color: #444;
-  cursor: pointer;
-  padding: 2rem;
-  width: 100%;
-  border: none;
-  text-align: left;
-  outline: none;
-  transition: 0.4s;
-  font-weight: bold;
-  border-radius: 5px;
-}
-.accordion:before {
-  content: '\02795'; /* Unicode character for "plus" sign (+) */
-  font-size: 13px;
-  color: #ffffff;
-  float: left;
-  margin-left: 5px;
-  margin-right: 17px;
-  margin-top: 3px;
-}
-
-.active, .accordion:hover {
+.active {
   background-color: #ffd8b0;
 }
 .active:before {
@@ -516,4 +479,33 @@ Defaulting to 3 for the User bookings*/
 
 .flatpickr-input + input {
   width:307.875px;
+}
+
+.app-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: var(--col-gap);
+    row-gap: var(--row-gap);
+    list-style: none;
+    width: 100%;
+    padding: 0;
+}
+
+@media screen and (min-width: 47em) {
+    .app-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media screen and (min-width: 62em) {
+    .app-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+.app-grid > li {
+    background-color: var(--bg-secondary-color);
+    border: 0.2rem solid var(--border-color);
+    text-align: center;
+    border-radius: 1rem;
 }
