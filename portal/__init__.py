@@ -11,7 +11,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
 
     app.config.from_mapping(
-        SITE_NAME="Portal",
+        SITE_NAME="Hackspace Portal",
         SECRET_KEY="dev",
         SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres:postgres@localhost:5432/portal",
         SENDER_EMAIL="example@example.com"
