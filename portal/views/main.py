@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, redirect, render_template, url_for
 import sqlalchemy as sa
 
 from portal.extensions import db, session_manager
