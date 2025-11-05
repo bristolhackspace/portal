@@ -12,9 +12,11 @@ def create_app(test_config=None):
 
     app.config.from_mapping(
         SITE_NAME="Hackspace Portal",
+        WEBSITE_URL="http://example.com",
         SECRET_KEY="dev",
         SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres:postgres@localhost:5432/portal",
-        SENDER_EMAIL="example@example.com"
+        SENDER_EMAIL="example@example.com",
+        JWT_ISSUER="https://portal.example.com"
     )
 
     if test_config is None:
