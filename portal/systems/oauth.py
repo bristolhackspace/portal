@@ -34,7 +34,7 @@ class AuthorizationCodeGrant(_AuthorizationCodeGrant):
             client=request.client,
             redirect_uri=payload.redirect_uri,
             scope=payload.scope,
-            auth_time=request.session.last_auth if request.session else datetime.now(timezone.utc),
+            auth_time=datetime.now(timezone.utc),
             nonce=nonce,
             acr=request.acr,
             amr=" ".join(request.session.calculate_amr()) if request.session else None
@@ -78,7 +78,7 @@ class OpenIDCode(grants.OpenIDCode):
         return {
             'key': jwk.to_key(private=True),
             'alg': jwk.alg,
-            'iss': 'https://portal.samp20.com',
+            'iss': self.server.issuer,
             'exp': 3600
         }
 
@@ -119,6 +119,7 @@ class AuthorizationServer(_AuthorizationServer):
         self.db = db
         self.jwks = jwks
         self.session = session
+        self.issuer = app.config["JWT_ISSUER"]
 
     def create_oauth2_request(self, request):
         oauth_req = SessionOAuth2Request(flask_req)
@@ -160,7 +161,7 @@ class OAuth:
 
     def init_app(self, app: Flask):
         server = AuthorizationServer(app, self.db, self.jwks, self.session)
-        server.register_grant(AuthorizationCodeGrant, [OpenIDCode(server, require_nonce=True), AuthContext()])
+        server.register_grant(AuthorizationCodeGrant, [OpenIDCode(server, require_nonce=False), AuthContext()])
         app.extensions["hs.portal.oauth"] = server
 
     @property
@@ -180,3 +181,7 @@ class OAuth:
 
     def create_token_response(self) -> Response:
         return self._state.create_token_response() # pyright: ignore[reportReturnType]
+
+    @property
+    def issuer(self) -> str:
+        return self._state.issuer

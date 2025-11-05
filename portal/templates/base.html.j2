@@ -27,7 +27,7 @@
                 </a>
                 <ul class="nav-menu">
                     <li><a href="{{ url_for('main.logout') }}" class="nav-link">Logout</a></li>
-                    <li><a href="#" class="nav-link">Back to our website</a></li>
+                    <li><a href="{{ config['WEBSITE_URL'] }}" class="nav-link">Back to our website</a></li>
                 </ul>
             </nav>
         </header>

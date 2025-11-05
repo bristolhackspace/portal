@@ -27,7 +27,36 @@ def issue_token():
 
 @bp.route(".well-known/openid-configuration")
 def openid_configuration():
-    return {}
+    def external_url(endpoint: str):
+        return url_for(endpoint, _external=True)
+
+    return {
+        "authorization_endpoint": external_url('.authorize'),
+        "token_endpoint": external_url('.issue_token'),
+        # "userinfo_endpoint": external_url('.userinfo_endpoint'),
+        "jwks_uri": external_url('.certs'),
+        "id_token_signing_alg_values_supported": [
+            "HS256",
+            "RS256"
+        ],
+        "issuer": oauth.issuer,
+        "response_types_supported": [
+            "code",
+            # TODO check what it takes to support these too
+            # "id_token",
+            # "id_token token",
+            # "code token",
+            # "code id_token",
+            # "code id_token token"
+        ],
+        "subject_types_supported": [
+            "public"
+        ],
+        "token_endpoint_auth_methods_supported": [
+            "client_secret_post",
+            "client_secret_basic"
+        ],
+    }
 
 @bp.route("certs")
 def certs():
