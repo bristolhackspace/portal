@@ -34,7 +34,8 @@ class AuthorizationCodeGrant(_AuthorizationCodeGrant):
             client=request.client,
             redirect_uri=payload.redirect_uri,
             scope=payload.scope,
-            auth_time=datetime.now(timezone.utc),
+            auth_time=request.session.last_auth if request.session else datetime.fromtimestamp(0, timezone.utc),
+            created_time=datetime.now(timezone.utc),
             nonce=nonce,
             acr=request.acr,
             amr=" ".join(request.session.calculate_amr()) if request.session else None

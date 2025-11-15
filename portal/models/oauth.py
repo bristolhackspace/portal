@@ -109,6 +109,7 @@ class AuthorizationCode(PkModel, AuthorizationCodeMixin):
     scope: Mapped[str]
     nonce: Mapped[Optional[str]]
     auth_time: Mapped[datetime] = mapped_column(UTCDateTime())
+    created_time: Mapped[datetime] = mapped_column(UTCDateTime())
     acr: Mapped[Optional[str]]
     amr: Mapped[Optional[str]]
 
@@ -119,7 +120,7 @@ class AuthorizationCode(PkModel, AuthorizationCodeMixin):
     client: Mapped["OAuth2Client"] = relationship()
 
     def is_expired(self):
-        return self.auth_time + timedelta(seconds=300) < datetime.now(timezone.utc)
+        return self.created_time + timedelta(seconds=300) < datetime.now(timezone.utc)
 
     def get_redirect_uri(self):
         return self.redirect_uri
