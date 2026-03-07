@@ -11,7 +11,7 @@ from portal.systems.session_manager import SessionManager
 db = SQLAlchemy(metadata=models.Base.metadata)
 session_manager = SessionManager(db)
 mailer = Mailer()
-authentication = Authentication(mailer, db)
+authentication = Authentication(mailer, db, session_manager)
 jwks = JWKs(db)
 oauth = OAuth(db, jwks, session_manager)
 

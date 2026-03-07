@@ -19,9 +19,7 @@ class AuthFlow(Base):
         ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE")
     )
     flow_token_hash: Mapped[str]
-    email_token_hash: Mapped[Optional[str]]
-    # A code the user can visually check matches the one in the email
-    visual_code: Mapped[Optional[str]]
+    email_otp_hash: Mapped[Optional[str]]
 
     expiry: Mapped[datetime] = mapped_column(UTCDateTime())
     email_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())

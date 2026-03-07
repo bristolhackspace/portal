@@ -1,3 +1,5 @@
+from argon2 import PasswordHasher
+from argon2.exceptions import VerificationError, InvalidHashError
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 import functools
@@ -53,10 +55,12 @@ class Authentication:
         self,
         mailer: Mailer,
         db: SQLAlchemy,
+        session_manager: SessionManager,
         app: Flask | None = None,
     ):
         self.mailer = mailer
         self.db = db
+        self.session_manager = session_manager
 
         if app is not None:
             self.init_app(app)
@@ -99,13 +103,18 @@ class Authentication:
 
         now = datetime.now(timezone.utc)
 
-        flow_id, email_token = build_secure_uri(flow, "email_token_hash", as_tuple=True)
-        flow.visual_code=secrets.token_hex(2)
+        otp = f"{secrets.randbelow(1000000):06d}"
+
+        ph = PasswordHasher()
+
+        flow.email_otp_hash = ph.hash(otp)
+
+        flow_id = flow.id.hex
         flow.expiry=now + self._state.flow_expiry
         flow.user = user
 
         magic_url = url_for(
-            magic_link_route, id=flow_id, token=email_token, _external=True
+            magic_link_route, flow_id=flow_id, otp=otp, _external=True
         )
 
         self.db.session.commit()
@@ -114,7 +123,8 @@ class Authentication:
             self.mailer.send_email(
                 user=user,
                 template="emails/magic_link",
-                subject="Your Login link",
+                subject="Your Login code",
+                otp=otp,
                 flow=flow,
                 magic_url=magic_url,
             )
@@ -144,28 +154,28 @@ class Authentication:
     def current_flow(self) -> AuthFlow | None:
         return g.get("flow")
 
-    def verify_magic_link(self, request: Request, commit: bool) -> AuthFlow | None:
-        link_id = request.args.get("id")
-        token = request.args.get("token", "")
-
-        flow = self.db.session.get(AuthFlow, uuid.UUID(hex=link_id))
+    def verify_email_otp(self, otp: str) -> bool:
+        flow = self.current_flow
 
         if not flow:
-            return None
+            return False
 
         if flow.expiry < datetime.now(timezone.utc):
-            return None
+            return False
 
-        if not flow.email_token_hash or not secrets.compare_digest(flow.email_token_hash, hash_token(token)):
-            return None
+        ph = PasswordHasher()
 
-        if commit:
-            flow.email_verified = datetime.now(timezone.utc)
-            self.db.session.commit()
+        try:
+            ph.verify(flow.email_otp_hash, otp)
+        except (VerificationError, InvalidHashError):
+            return False
 
-        return flow
+        flow.email_verified = datetime.now(timezone.utc)
+        self.db.session.commit()
 
-    def try_authenticate(self, session_manager: SessionManager, default_redirect_route: str) -> FlowStep|Response:
+        return True
+
+    def try_authenticate(self, default_redirect_route: str) -> FlowStep|Response:
         flow = self.current_flow
 
         if not flow:
@@ -184,7 +194,7 @@ class Authentication:
         if flow.totp_verified:
             auth_methods["totp"] = flow.totp_verified
 
-        session_manager.authenticate_session(flow.user, methods=auth_methods)
+        self.session_manager.authenticate_session(flow.user, methods=auth_methods)
         self.db.session.delete(flow)
         self.db.session.commit()
 
@@ -195,7 +205,7 @@ class Authentication:
         return response
 
     def _flow_next_step(self, flow: AuthFlow) -> FlowStep:
-        if not flow.email_token_hash:
+        if not flow.email_otp_hash:
             return FlowStep.NOT_STARTED
         if not flow.email_verified:
             return FlowStep.VERIFY_EMAIL
