@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from portal import models
 from portal.systems.authentication import Authentication
+from portal.systems.discourse_connect import DiscourseConnect
 from portal.systems.jwks import JWKs
 from portal.systems.mailer import Mailer
 from portal.systems.oauth import OAuth
@@ -14,6 +15,7 @@ mailer = Mailer()
 authentication = Authentication(mailer, db, session_manager)
 jwks = JWKs(db)
 oauth = OAuth(db, jwks, session_manager)
+discourse = DiscourseConnect()
 
 def init_app(app: Flask):
     db.init_app(app)
@@ -22,3 +24,4 @@ def init_app(app: Flask):
     authentication.init_app(app)
     jwks.init_app(app)
     oauth.init_app(app)
+    discourse.init_app(app)
