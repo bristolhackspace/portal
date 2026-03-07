@@ -7,6 +7,7 @@ from portal.systems.discourse_connect import DiscourseConnect
 from portal.systems.jwks import JWKs
 from portal.systems.mailer import Mailer
 from portal.systems.oauth import OAuth
+from portal.systems.rate_limiter import RateLimiter
 from portal.systems.session_manager import SessionManager
 
 db = SQLAlchemy(metadata=models.Base.metadata)
@@ -16,6 +17,7 @@ authentication = Authentication(mailer, db, session_manager)
 jwks = JWKs(db)
 oauth = OAuth(db, jwks, session_manager)
 discourse = DiscourseConnect()
+rate_limiter = RateLimiter(db)
 
 def init_app(app: Flask):
     db.init_app(app)
@@ -25,3 +27,4 @@ def init_app(app: Flask):
     jwks.init_app(app)
     oauth.init_app(app)
     discourse.init_app(app)
+    rate_limiter.init_app(app)
