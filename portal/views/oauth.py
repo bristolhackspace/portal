@@ -1,17 +1,16 @@
+from datetime import datetime, timezone
 from authlib.oauth2 import OAuth2Error
 from flask import Blueprint, redirect, url_for, request
 
 from portal.extensions import db, jwks, oauth, session_manager, authentication
+from portal.decorators import login_required
 
 bp = Blueprint("oauth", __name__, url_prefix="/oauth")
 
 @bp.route("/authorize")
+@login_required
 def authorize():
     current_session = session_manager.current_session
-
-    if current_session is None:
-        authentication.begin_flow(request.url)
-        return redirect(url_for("login.index"))
 
     try:
         grant = oauth.get_consent_grant(current_session.user)
