@@ -20,6 +20,7 @@ from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
 from portal.models import User, Session, OAuth2Client, Token, AuthorizationCode
+from portal.systems.cleanup import Cleanup
 from portal.systems.jwks import JWKs
 from portal.systems.session_manager import SessionManager
 
@@ -151,11 +152,13 @@ class OAuth:
         db: SQLAlchemy,
         jwks: JWKs,
         session: SessionManager,
+        cleanup: Cleanup,
         app: Flask | None = None,
     ):
         self.db = db
         self.jwks = jwks
         self.session = session
+        self.cleanup = cleanup
 
         if app is not None:
             self.init_app(app)
