@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from portal import models
 from portal.systems.authentication import Authentication
+from portal.systems.cleanup import Cleanup
 from portal.systems.discourse_connect import DiscourseConnect
 from portal.systems.jwks import JWKs
 from portal.systems.mailer import Mailer
@@ -11,16 +12,18 @@ from portal.systems.rate_limiter import RateLimiter
 from portal.systems.session_manager import SessionManager
 
 db = SQLAlchemy(metadata=models.Base.metadata)
+cleanup = Cleanup()
 session_manager = SessionManager(db)
 mailer = Mailer()
 authentication = Authentication(mailer, db, session_manager)
 jwks = JWKs(db)
-oauth = OAuth(db, jwks, session_manager)
+oauth = OAuth(db, jwks, session_manager, cleanup)
 discourse = DiscourseConnect()
 rate_limiter = RateLimiter(db)
 
 def init_app(app: Flask):
     db.init_app(app)
+    cleanup.init_app(app)
     session_manager.init_app(app)
     mailer.init_app(app)
     authentication.init_app(app)
