@@ -4,8 +4,10 @@ from flask import Flask, Response, current_app, g, request, after_this_request
 from flask_sqlalchemy import SQLAlchemy
 import hashlib
 import secrets
+import sqlalchemy as sa
 import uuid
 
+from portal.extensions.cleanup import Cleanup
 from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import Session, User
 
@@ -36,8 +38,9 @@ class _State:
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, app: Flask | None = None):
+    def __init__(self, db: SQLAlchemy, cleanup: Cleanup, app: Flask | None = None):
         self.db = db
+        self.cleanup = cleanup
 
         if app is not None:
             self.init_app(app)
@@ -45,6 +48,8 @@ class SessionManager:
     def init_app(self, app: Flask):
         app.extensions["hs.portal.session"] = _State(app)
         app.before_request(self.load_session)
+
+        self.cleanup.register_callback(app, "Session", self.cleanup_sessions)
 
     @property
     def _state(self) -> _State:
@@ -215,3 +220,14 @@ class SessionManager:
 
         self.db.session.delete(sess)
         self.db.session.commit()
+
+    def cleanup_sessions(self) -> int:
+        deleted_count = 0
+        query = sa.select(Session)
+        sessions = db.session.execute(query).scalars()
+        for session in sessions:
+            if not self.calculate_auth_contexts(session):
+                self.db.session.delete(session)
+                deleted_count += 1
+        self.db.session.commit()
+        return deleted_count

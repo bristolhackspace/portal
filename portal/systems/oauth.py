@@ -168,6 +168,8 @@ class OAuth:
         server.register_grant(AuthorizationCodeGrant, [OpenIDCode(server, require_nonce=False), AuthContext()])
         app.extensions["hs.portal.oauth"] = server
 
+        self.cleanup.register_callback(app, "OAuth Token", self.cleanup_tokens)
+
     @property
     def _state(self) -> AuthorizationServer:
         state = current_app.extensions["hs.portal.oauth"]
@@ -189,3 +191,14 @@ class OAuth:
     @property
     def issuer(self) -> str:
         return self._state.issuer
+
+    def cleanup_tokens(self) -> int:
+        deleted_count = 0
+        query = sa.select(Token)
+        tokens = self.db.session.execute(query).scalars()
+        for token in tokens:
+            if token.is_expired():
+                self.db.session.delete(token)
+                deleted_count += 1
+        self.db.session.commit()
+        return deleted_count
