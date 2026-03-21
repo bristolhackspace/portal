@@ -138,6 +138,10 @@ class Authentication:
         )
         return response
 
+    def delete_flow_cookie(self, response: Response) -> Response:
+        response.delete_cookie(self.cookie_name)
+        return response
+
     def load_flow(self):
         flow_uri = request.cookies.get(self.cookie_name, "")
         flow = get_from_secure_uri(self.db, AuthFlow, flow_uri, attribute="flow_token_hash")
@@ -187,15 +191,12 @@ class Authentication:
             return True
 
     def try_authenticate(self, default_redirect_route: str) -> FlowStep|Response:
-        flow = self.current_flow
-
-        if not flow:
-            return FlowStep.NOT_STARTED
-
-        flow_step = self._flow_next_step(flow)
+        flow_step = self.flow_next_step(flow)
 
         if flow_step != FlowStep.FINISHED:
             return flow_step
+
+        flow = self.current_flow
 
         auth_methods = {}
 
@@ -215,7 +216,22 @@ class Authentication:
 
         return response
 
-    def _flow_next_step(self, flow: AuthFlow) -> FlowStep:
+    def delete_flow(self, commit:bool=True):
+        flow = self.current_flow
+        if not flow:
+            return
+
+        self.db.session.delete(flow)
+        if commit:
+            self.db.session.commit()
+
+        after_this_request(self.delete_flow_cookie)
+
+
+    def flow_next_step(self) -> FlowStep:
+        flow = self.current_flow
+        if not flow:
+            return FlowStep.NOT_STARTED
         if not flow.email_otp_hash:
             return FlowStep.NOT_STARTED
         if not flow.email_verified:
