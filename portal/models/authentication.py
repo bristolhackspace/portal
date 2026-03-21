@@ -20,10 +20,13 @@ class AuthFlow(Base):
     )
     flow_token_hash: Mapped[str]
     email_otp_hash: Mapped[Optional[str]]
+    email_otp_attempts: Mapped[int]
 
     expiry: Mapped[datetime] = mapped_column(UTCDateTime())
     email_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     totp_verified: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     redirect_uri: Mapped[Optional[str]]
+
+    ip_rate_limit_key: Mapped[Optional[str]]
 
     user: Mapped[Optional["User"]] = relationship()
