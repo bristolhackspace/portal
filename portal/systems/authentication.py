@@ -24,7 +24,7 @@ import sqlalchemy as sa
 
 from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
-from portal.systems.mailer import Mailer
+from portal.systems.mailer import BaseMailer
 from portal.systems.session_manager import SessionManager
 from portal.systems.rate_limiter import RateLimiter
 
@@ -39,7 +39,7 @@ class FlowStep(Enum):
 class Authentication:
     def __init__(
         self,
-        mailer: Mailer,
+        mailer: BaseMailer,
         db: SQLAlchemy,
         session_manager: SessionManager,
         rate_limiter: RateLimiter,
