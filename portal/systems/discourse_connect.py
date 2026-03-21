@@ -1,51 +1,50 @@
 import base64
+from typing import cast
 from flask import Flask, Request, redirect
 import hashlib
 import hmac
 from urllib.parse import urlencode, parse_qs
+from werkzeug import Response
 from yarl import URL
+
+from portal.models.user import Session
+from portal.systems.session_manager import SessionManager
 
 class DiscourseConnectError(Exception):
     pass
 
-class _State:
-    def __init__(self, app: Flask):
-        self.secret = app.config["DISCOURSE_CONNECT_SECRET"].encode("utf-8")
 
 class DiscourseConnect:
-    def __init__(self, session: SessionManager, app: Flask | None = None):
+    def __init__(self, session: SessionManager, app: Flask):
         self.session = session
-        if app is not None:
-            self.init_app(app)
 
-    def init_app(self, app: Flask):
-        app.extensions["hs.portal.discourse"] = _State(app)
-
-    @property
-    def _state(self) -> _State:
-        state = current_app.extensions["hs.portal.discourse"]
-        return state
+        self.secret = app.config["DISCOURSE_CONNECT_SECRET"].encode("utf-8")
 
     def authenticate(self, request: Request) -> Response:
         # Extract sig and sso from request args
         sso = request.args.get("sso")
         sig = request.args.get("sig")
 
-        secret = self._state.secret
+        if sso is None or sig is None:
+            raise DiscourseConnectError("Invalid payload")
+
+        secret = self.secret
 
         # Check the signature is valid
-        digest = hmac.new(secret, sso, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sigest, sig):
+        digest = hmac.new(secret, sso.encode("utf-8"), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(digest, sig):
             raise DiscourseConnectError("Invalid payload")
 
         # Extract arguments from sso
         qs = base64.b64decode(sso).decode("utf-8")
         args = parse_qs(qs)
-        nonce = args["nonce"]
-        return_sso_url = args["return_sso_url"]
+        nonce = args["nonce"][0]
+        return_sso_url = args["return_sso_url"][0]
 
         # Get current session details
         current_session = self.session.current_session
+        if current_session is None:
+            raise DiscourseConnectError("No valid session")
         user = current_session.user
 
         # Build response payload
@@ -71,9 +70,9 @@ class DiscourseConnect:
         # Do the redirect
         return redirect(str(remote_url), 302)
 
-        
 
 
-        
 
-        
+
+
+

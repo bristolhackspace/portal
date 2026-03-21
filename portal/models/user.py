@@ -55,7 +55,7 @@ class User(PkModel):
     __tablename__ = "user"
 
     display_name: Mapped[Optional[str]]
-    email: Mapped[Optional[str]]
+    email: Mapped[str]
     totp_secret: Mapped[Optional[str]]
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user")

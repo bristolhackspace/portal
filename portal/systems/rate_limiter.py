@@ -1,21 +1,19 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
+from typing import cast
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from ipaddress import IPv4Address, IPv6Address, ip_address, IPv6Network
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import insert
 
 from portal.models.rate_limit import RateLimit
 
-class RateLimitError:
+class RateLimitError(Exception):
     pass
 
 class RateLimiter:
-    def __init__(self, db: SQLAlchemy, app: Flask | None = None):
+    def __init__(self, db: SQLAlchemy, app: Flask):
         self.db = db
-        if app is not None:
-            self.init_app(app)
-
-    def init_app(self, app: Flask):
-        pass
 
     def rate_limit(self, key: str, limit: int, duration: timedelta|int, commit:bool=True):
         now = datetime.now(timezone.utc)
@@ -24,10 +22,11 @@ class RateLimiter:
         expiry = now + duration
 
         # Delete any expired rate limits first
-        self.db.session.execute(delete(RateLimit).where(and_(
+        self.db.session.execute(sa.delete(RateLimit).where(sa.and_(
             RateLimit.key==key,
             RateLimit.expiry < now
         )))
+
 
         stmt = insert(RateLimit).values(
             key=key,
@@ -43,7 +42,7 @@ class RateLimiter:
             )
         ).returning(RateLimit)
 
-        result = db.session.scalars(stmt).first()
+        result = cast(RateLimit, self.db.session.scalars(stmt).first())
 
         if commit:
             self.db.session.commit()
@@ -57,7 +56,7 @@ class RateLimiter:
         if commit:
             self.db.session.commit()
 
-            
+
     def normalise_ip(self, ip: str|IPv4Address|IPv6Address) -> str:
         if isinstance(ip, str):
             ip = ip_address(ip)
@@ -70,6 +69,6 @@ class RateLimiter:
             return str(ip)
 
 
-        
 
-        
+
+
