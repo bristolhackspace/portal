@@ -26,6 +26,7 @@ from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import Mailer
 from portal.systems.session_manager import SessionManager
+from portal.systems.rate_limiter import RateLimiter
 
 
 class FlowStep(Enum):
@@ -42,6 +43,7 @@ class _State:
         )
         self.cookie_name: str = app.config.get("AUTH_FLOW_COOKIE_NAME", "flow_id")
         self.cookie_secure: bool = app.config.get("AUTH_FLOW_COOKIE_SECURE", False)
+        self.email_otp_max_attempts: int = app.config.get("AUTH_FLOW_EMAIL_OTP_MAX_ATTEMPTS", 4)
 
     @staticmethod
     def as_timedelta(value: int | float | timedelta) -> timedelta:
@@ -56,11 +58,13 @@ class Authentication:
         mailer: Mailer,
         db: SQLAlchemy,
         session_manager: SessionManager,
+        rate_limiter: RateLimiter,
         app: Flask | None = None,
     ):
         self.mailer = mailer
         self.db = db
         self.session_manager = session_manager
+        self.rate_limiter = rate_limiter
 
         if app is not None:
             self.init_app(app)
@@ -80,6 +84,7 @@ class Authentication:
             id=uuid.uuid4(),
             flow_token_hash="",
             expiry=now + self._state.flow_expiry,
+            email_otp_attempts=0,
             redirect_uri=redirect_uri
         )
 
@@ -94,9 +99,20 @@ class Authentication:
         return flow
 
     def send_magic_email(self, email: str, magic_link_route: str):
+        ip_addr = self.rate_limiter.normalise_ip(request.remote_addr)
+        ip_rate_limit_key = f"email_send_ip_limit:{ip_addr}"
+        self.rate_limiter.rate_limit(ip_rate_limit_key, 30, timedelta(hours=12))
+
+        self.rate_limiter.rate_limit(slow_rate_limit_key(email), 5, timedelta(hours=12))
+
+        self.rate_limiter.rate_limit(fast_rate_limit_key(email), 1, timedelta(minutes=1))
+
+
         flow = self.current_flow
         if flow is None:
             flow = self.begin_flow()
+
+        flow.ip_rate_limit_key = ip_rate_limit_key
 
         query = sa.select(User).filter(User.email == email)
         user = self.db.session.execute(query).scalar_one_or_none()
@@ -155,25 +171,35 @@ class Authentication:
         return g.get("flow")
 
     def verify_email_otp(self, otp: str) -> bool:
-        flow = self.current_flow
+        with self.db.session.begin():
+            flow = self.current_flow
 
-        if not flow:
-            return False
+            if not flow:
+                return False
 
-        if flow.expiry < datetime.now(timezone.utc):
-            return False
+            flow.email_otp_attempts += 1
+            if flow.email_otp_attempts > self._state.email_otp_max_attempts:
+                return False
 
-        ph = PasswordHasher()
+            if flow.expiry < datetime.now(timezone.utc):
+                return False
 
-        try:
-            ph.verify(flow.email_otp_hash, otp)
-        except (VerificationError, InvalidHashError):
-            return False
+            ph = PasswordHasher()
 
-        flow.email_verified = datetime.now(timezone.utc)
-        self.db.session.commit()
+            try:
+                ph.verify(flow.email_otp_hash, otp)
+            except (VerificationError, InvalidHashError):
+                return False
 
-        return True
+            flow.email_verified = datetime.now(timezone.utc)
+            if flow.ip_rate_limit_key:
+                self.rate_limiter.reset_rate_limit(flow.ip_rate_limit_key, commit=False)
+
+            self.rate_limiter.reset_rate_limit(slow_rate_limit_key(email), commit=False)
+            self.rate_limiter.reset_rate_limit(fast_rate_limit_key(email), commit=False)
+
+
+            return True
 
     def try_authenticate(self, default_redirect_route: str) -> FlowStep|Response:
         flow = self.current_flow
@@ -213,3 +239,10 @@ class Authentication:
             if not flow.totp_verified:
                 return FlowStep.VERIFY_TOTP
         return FlowStep.FINISHED
+
+
+def slow_rate_limit_key(email: str) -> str:
+    return f"email_send_slow_limit:{email}"
+
+def fast_rate_limit_key(email: str) -> str:
+    return f"email_send_fast_limit:{email}"

@@ -13,13 +13,13 @@ from portal.systems.session_manager import SessionManager
 
 db = SQLAlchemy(metadata=models.Base.metadata)
 cleanup = Cleanup()
+rate_limiter = RateLimiter(db)
 session_manager = SessionManager(db)
 mailer = Mailer()
-authentication = Authentication(mailer, db, session_manager)
+authentication = Authentication(mailer, db, session_manager, rate_limiter)
 jwks = JWKs(db)
 oauth = OAuth(db, jwks, session_manager, cleanup)
 discourse = DiscourseConnect()
-rate_limiter = RateLimiter(db)
 
 def init_app(app: Flask):
     db.init_app(app)
