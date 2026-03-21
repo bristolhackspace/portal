@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from wtforms import EmailField, StringField
 from wtforms.validators import DataRequired
 
-from portal.extensions import authentication, session_manager
+from portal.extensions import hs
 from portal.systems.authentication import FlowStep
 
 bp = Blueprint("login", __name__, url_prefix="/login")
@@ -18,9 +18,9 @@ class OtpForm(FlaskForm):
 
 @bp.route("/", methods=["GET", "POST"])
 def index():
-    authentication.load_flow()
+    hs.authentication.load_flow()
 
-    flow = authentication.current_flow
+    flow = hs.authentication.current_flow
 
     # If someone opens a login link from another browser then instruct them
     # to manually enter the code instead
@@ -28,9 +28,18 @@ def index():
         if flow is None or flow.id.hex != request.args["flow_id"]:
             return render_template("login/use_code.html.j2")
 
-    step = authentication.try_authenticate("main.index")
+    step = hs.authentication.flow_next_step()
 
-    if isinstance(step, Response):
+    if step == FlowStep.FINISHED:
+        auth_methods = {}
+        if flow.email_verified:
+            auth_methods["email"] = flow.email_verified
+        if flow.totp_verified:
+            auth_methods["totp"] = flow.totp_verified
+        hs.session.authenticate_session(flow.user, methods=auth_methods)
+        hs.authentication.delete_flow(commit=False)
+        db.session.commit()
+
         return step
     elif step == FlowStep.VERIFY_EMAIL and "flow_id" in request.args:
         if authentication.verify_email_otp(request.args.get("otp", "")):

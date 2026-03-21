@@ -135,11 +135,52 @@ def test_fail_invalid_otp(app, client, authentication, user_model, flow_cookie, 
     assert response.status_code == 200
 
 
-def test_try_authenticate_not_started(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_flow_next_step_no_flow(app, client, authentication, user_model, flow_cookie, flow_model):
+    @app.route("/verify")
+    def verify():
+        assert authentication.flow_next_step() == FlowStep.NOT_STARTED
+        return "OK"
+
+    response = client.get("/verify")
+    assert response.status_code == 200
+
+def test_flow_next_step_not_started(app, client, authentication, user_model, flow_cookie, flow_model):
     @app.route("/verify")
     def verify():
         authentication.load_flow()
-        assert authentication.try_authenticate() == FlowStep.NOT_STARTED
+        assert authentication.flow_next_step() == FlowStep.NOT_STARTED
+        return "OK"
+
+    response = client.get("/verify")
+    assert response.status_code == 200
+
+def test_flow_next_step_verify_email(app, client, authentication, user_model, flow_cookie, flow_model):
+    ph = PasswordHasher()
+    otp = "678123"
+    flow_model.email_otp_hash = ph.hash(otp)
+    db.session.commit() 
+    
+    @app.route("/verify")
+    def verify():
+        authentication.load_flow()
+        assert authentication.flow_next_step() == FlowStep.VERIFY_EMAIL
+        return "OK"
+
+    response = client.get("/verify")
+    assert response.status_code == 200
+
+
+def test_flow_next_step_finished(app, client, authentication, user_model, flow_cookie, flow_model):
+    ph = PasswordHasher()
+    otp = "678123"
+    flow_model.email_otp_hash = ph.hash(otp)
+    flow_model.email_verified = datetime.now(timezone.utc)
+    db.session.commit()
+    
+    @app.route("/verify")
+    def verify():
+        authentication.load_flow()
+        assert authentication.flow_next_step() == FlowStep.FINISHED
         return "OK"
 
     response = client.get("/verify")
