@@ -152,7 +152,7 @@ class Authentication:
         return g.get("flow")
 
     def verify_email_otp(self, otp: str) -> bool:
-        with self.db.session.begin():
+        with self.db.session.begin(nested=True):
             flow = self.current_flow
 
             if not flow:

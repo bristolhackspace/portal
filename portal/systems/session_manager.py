@@ -13,7 +13,7 @@ from portal.models import Session, User
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, cleanup: Cleanup, app: Flask):
+    def __init__(self, db: SQLAlchemy, cleanup: Cleanup|None, app: Flask):
         self.db = db
         self.cleanup = cleanup
 
@@ -35,7 +35,8 @@ class SessionManager:
 
         app.before_request(self.load_session)
 
-        self.cleanup.register_callback("Session", self.cleanup_sessions)
+        if self.cleanup:
+            self.cleanup.register_callback("Session", self.cleanup_sessions)
 
 
     def load_session(self):
