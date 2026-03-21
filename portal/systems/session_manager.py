@@ -7,57 +7,39 @@ import secrets
 import sqlalchemy as sa
 import uuid
 
-from portal.extensions.cleanup import Cleanup
-from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
+from portal.systems.cleanup import Cleanup
+from portal.helpers import build_secure_uri, get_from_secure_uri, as_timedelta
 from portal.models import Session, User
 
 
-class _State:
-    def __init__(self, app: Flask):
+class SessionManager:
+    def __init__(self, db: SQLAlchemy, cleanup: Cleanup, app: Flask):
+        self.db = db
+        self.cleanup = cleanup
+
         self.cookie_name: str = app.config.get("HS_SESSION_NAME", "id")
-        self.cookie_max_age = self.as_timedelta(
+        self.cookie_max_age = as_timedelta(
             app.config.get("HS_SESSION_MAX_AGE", timedelta(days=30))
         )
         self.cookie_secure: bool = app.config.get("HS_SESSION_SECURE", False)
 
-        self.keyfob_max_idle = self.as_timedelta(
+        self.keyfob_max_idle = as_timedelta(
             app.config.get("HS_KEYFOB_MAX_IDLE", timedelta(minutes=20))
         )
-        self.login_max_idle = self.as_timedelta(
+        self.login_max_idle = as_timedelta(
             app.config.get("HS_LOGIN_MAX_IDLE", timedelta(days=30))
         )
-        self.elevated_auth_expiry = self.as_timedelta(
+        self.elevated_auth_expiry = as_timedelta(
             app.config.get("HS_ELEVATED_AUTH_EXPIRY", timedelta(minutes=20))
         )
 
-    @staticmethod
-    def as_timedelta(value: int | float | timedelta) -> timedelta:
-        if not isinstance(value, timedelta):
-            value = timedelta(seconds=value)
-        return value
-
-
-class SessionManager:
-    def __init__(self, db: SQLAlchemy, cleanup: Cleanup, app: Flask | None = None):
-        self.db = db
-        self.cleanup = cleanup
-
-        if app is not None:
-            self.init_app(app)
-
-    def init_app(self, app: Flask):
-        app.extensions["hs.portal.session"] = _State(app)
         app.before_request(self.load_session)
 
-        self.cleanup.register_callback(app, "Session", self.cleanup_sessions)
+        self.cleanup.register_callback("Session", self.cleanup_sessions)
 
-    @property
-    def _state(self) -> _State:
-        state = current_app.extensions["hs.portal.session"]
-        return state
 
     def load_session(self):
-        session_uri = request.cookies.get(self._state.cookie_name, "")
+        session_uri = request.cookies.get(self.cookie_name, "")
 
         session = get_from_secure_uri(self.db, Session, session_uri, "secret_hash")
         if session is None:
@@ -138,11 +120,11 @@ class SessionManager:
         self, secure_uri: str, response: Response
     ) -> Response:
         response.set_cookie(
-            key=self._state.cookie_name,
+            key=self.cookie_name,
             value=secure_uri,
-            max_age=self._state.cookie_max_age,
+            max_age=self.cookie_max_age,
             httponly=True,
-            secure=self._state.cookie_secure,
+            secure=self.cookie_secure,
         )
         return response
 
@@ -163,7 +145,7 @@ class SessionManager:
         now = datetime.now(timezone.utc)
 
         if session.last_keyfob_auth:
-            if now < session.last_active + self._state.keyfob_max_idle:
+            if now < session.last_active + self.keyfob_max_idle:
                 contexts.add("plastic")
 
         if (
@@ -171,25 +153,25 @@ class SessionManager:
             or session.last_passkey_auth
             or session.last_totp_auth
         ):
-            if now < session.last_active + self._state.login_max_idle:
+            if now < session.last_active + self.login_max_idle:
                 contexts.add("bronze")
 
         if (
             session.last_email_auth
-            and now < session.last_email_auth + self._state.elevated_auth_expiry
+            and now < session.last_email_auth + self.elevated_auth_expiry
         ):
             contexts.add("silver")
 
         if (
             session.last_totp_auth
-            and now < session.last_totp_auth + self._state.elevated_auth_expiry
+            and now < session.last_totp_auth + self.elevated_auth_expiry
         ):
             contexts.add("silver")
             contexts.add("gold")
 
         if (
             session.last_passkey_auth
-            and now < session.last_passkey_auth + self._state.elevated_auth_expiry
+            and now < session.last_passkey_auth + self.elevated_auth_expiry
         ):
             contexts.add("silver")
             contexts.add("gold")
@@ -224,7 +206,7 @@ class SessionManager:
     def cleanup_sessions(self) -> int:
         deleted_count = 0
         query = sa.select(Session)
-        sessions = db.session.execute(query).scalars()
+        sessions = self.db.session.execute(query).scalars()
         for session in sessions:
             if not self.calculate_auth_contexts(session):
                 self.db.session.delete(session)

@@ -22,7 +22,7 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
-from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
+from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import Mailer
 from portal.systems.session_manager import SessionManager
@@ -36,22 +36,6 @@ class FlowStep(Enum):
     FINISHED = auto()
 
 
-class _State:
-    def __init__(self, app: Flask):
-        self.flow_expiry = self.as_timedelta(
-            app.config.get("AUTH_FLOW_EXPIRY", timedelta(minutes=10))
-        )
-        self.cookie_name: str = app.config.get("AUTH_FLOW_COOKIE_NAME", "flow_id")
-        self.cookie_secure: bool = app.config.get("AUTH_FLOW_COOKIE_SECURE", False)
-        self.email_otp_max_attempts: int = app.config.get("AUTH_FLOW_EMAIL_OTP_MAX_ATTEMPTS", 4)
-
-    @staticmethod
-    def as_timedelta(value: int | float | timedelta) -> timedelta:
-        if not isinstance(value, timedelta):
-            value = timedelta(seconds=value)
-        return value
-
-
 class Authentication:
     def __init__(
         self,
@@ -59,23 +43,20 @@ class Authentication:
         db: SQLAlchemy,
         session_manager: SessionManager,
         rate_limiter: RateLimiter,
-        app: Flask | None = None,
+        app: Flask,
     ):
         self.mailer = mailer
         self.db = db
         self.session_manager = session_manager
         self.rate_limiter = rate_limiter
 
-        if app is not None:
-            self.init_app(app)
+        self.flow_expiry = as_timedelta(
+            app.config.get("AUTH_FLOW_EXPIRY", timedelta(minutes=10))
+        )
+        self.cookie_name: str = app.config.get("AUTH_FLOW_COOKIE_NAME", "flow_id")
+        self.cookie_secure: bool = app.config.get("AUTH_FLOW_COOKIE_SECURE", False)
+        self.email_otp_max_attempts: int = app.config.get("AUTH_FLOW_EMAIL_OTP_MAX_ATTEMPTS", 4)
 
-    def init_app(self, app: Flask):
-        app.extensions["hs.portal.mail_auth"] = _State(app)
-
-    @property
-    def _state(self) -> _State:
-        state = current_app.extensions["hs.portal.mail_auth"]
-        return state
 
     def begin_flow(self, redirect_uri:str|None=None) -> AuthFlow:
         now = datetime.now(timezone.utc)
@@ -83,7 +64,7 @@ class Authentication:
         flow = AuthFlow(
             id=uuid.uuid4(),
             flow_token_hash="",
-            expiry=now + self._state.flow_expiry,
+            expiry=now + self.flow_expiry,
             email_otp_attempts=0,
             redirect_uri=redirect_uri
         )
@@ -99,14 +80,14 @@ class Authentication:
         return flow
 
     def send_magic_email(self, email: str, magic_link_route: str):
-        ip_addr = self.rate_limiter.normalise_ip(request.remote_addr)
-        ip_rate_limit_key = f"email_send_ip_limit:{ip_addr}"
-        self.rate_limiter.rate_limit(ip_rate_limit_key, 30, timedelta(hours=12))
+        ip_rate_limit_key = None
+        if request.remote_addr is not None:
+            ip_addr = self.rate_limiter.normalise_ip(request.remote_addr)
+            ip_rate_limit_key = f"email_send_ip_limit:{ip_addr}"
+            self.rate_limiter.rate_limit(ip_rate_limit_key, 30, timedelta(hours=12))
 
         self.rate_limiter.rate_limit(slow_rate_limit_key(email), 5, timedelta(hours=12))
-
         self.rate_limiter.rate_limit(fast_rate_limit_key(email), 1, timedelta(minutes=1))
-
 
         flow = self.current_flow
         if flow is None:
@@ -126,7 +107,7 @@ class Authentication:
         flow.email_otp_hash = ph.hash(otp)
 
         flow_id = flow.id.hex
-        flow.expiry=now + self._state.flow_expiry
+        flow.expiry=now + self.flow_expiry
         flow.user = user
 
         magic_url = url_for(
@@ -149,16 +130,16 @@ class Authentication:
         self, flow_secure_uri: str, response: Response
     ) -> Response:
         response.set_cookie(
-            key=self._state.cookie_name,
+            key=self.cookie_name,
             value=flow_secure_uri,
             max_age=None,
             httponly=True,
-            secure=self._state.cookie_secure,
+            secure=self.cookie_secure,
         )
         return response
 
     def load_flow(self):
-        flow_uri = request.cookies.get(self._state.cookie_name, "")
+        flow_uri = request.cookies.get(self.cookie_name, "")
         flow = get_from_secure_uri(self.db, AuthFlow, flow_uri, attribute="flow_token_hash")
 
         if flow is None:
@@ -178,10 +159,13 @@ class Authentication:
                 return False
 
             flow.email_otp_attempts += 1
-            if flow.email_otp_attempts > self._state.email_otp_max_attempts:
+            if flow.email_otp_attempts > self.email_otp_max_attempts:
                 return False
 
             if flow.expiry < datetime.now(timezone.utc):
+                return False
+
+            if not flow.email_otp_hash:
                 return False
 
             ph = PasswordHasher()
@@ -195,8 +179,9 @@ class Authentication:
             if flow.ip_rate_limit_key:
                 self.rate_limiter.reset_rate_limit(flow.ip_rate_limit_key, commit=False)
 
-            self.rate_limiter.reset_rate_limit(slow_rate_limit_key(email), commit=False)
-            self.rate_limiter.reset_rate_limit(fast_rate_limit_key(email), commit=False)
+            if flow.user:
+                self.rate_limiter.reset_rate_limit(slow_rate_limit_key(flow.user.email), commit=False)
+                self.rate_limiter.reset_rate_limit(fast_rate_limit_key(flow.user.email), commit=False)
 
 
             return True
@@ -226,7 +211,7 @@ class Authentication:
 
         response = redirect(flow.redirect_uri or default_redirect_route)
         response = make_response(response)
-        response.delete_cookie(self._state.cookie_name)
+        response.delete_cookie(self.cookie_name)
 
         return response
 

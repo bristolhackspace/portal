@@ -1,3 +1,4 @@
+from datetime import timedelta
 import hashlib
 import secrets
 from typing import Literal, Type, TypeVar, Union, overload
@@ -40,3 +41,9 @@ def get_from_secure_uri(db: SQLAlchemy, cls: Type[_O], uri: str, attribute: str=
         return None
 
     return instance
+
+
+def as_timedelta(value: int | float | timedelta) -> timedelta:
+        if not isinstance(value, timedelta):
+            value = timedelta(seconds=value)
+        return value

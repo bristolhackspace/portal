@@ -1,33 +1,20 @@
-from flask import Flask
+from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.local import LocalProxy
 
 from portal import models
-from portal.systems.authentication import Authentication
-from portal.systems.cleanup import Cleanup
-from portal.systems.discourse_connect import DiscourseConnect
-from portal.systems.jwks import JWKs
-from portal.systems.mailer import Mailer
-from portal.systems.oauth import OAuth
-from portal.systems.rate_limiter import RateLimiter
-from portal.systems.session_manager import SessionManager
+from portal.systems import HackspaceSystems
 
 db = SQLAlchemy(metadata=models.Base.metadata)
-cleanup = Cleanup()
-rate_limiter = RateLimiter(db)
-session_manager = SessionManager(db)
-mailer = Mailer()
-authentication = Authentication(mailer, db, session_manager, rate_limiter)
-jwks = JWKs(db)
-oauth = OAuth(db, jwks, session_manager, cleanup)
-discourse = DiscourseConnect()
+
+# All Hackspace systems assume a valid application context. This
+# proxy allows a global singleton to access these when an application
+# context is present.
+def get_hs_systems() -> HackspaceSystems:
+    return current_app.extensions["hackspace"]
+
+hs = LocalProxy(get_hs_systems)
 
 def init_app(app: Flask):
     db.init_app(app)
-    cleanup.init_app(app)
-    session_manager.init_app(app)
-    mailer.init_app(app)
-    authentication.init_app(app)
-    jwks.init_app(app)
-    oauth.init_app(app)
-    discourse.init_app(app)
-    rate_limiter.init_app(app)
+    app.extensions["hackspace"] = HackspaceSystems(db, app)
