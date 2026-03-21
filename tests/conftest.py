@@ -4,9 +4,13 @@ import pytest
 
 from portal import create_app
 from portal.extensions import db
+from portal.systems.authentication import Authentication
+from portal.systems.mailer import BaseMailer
+from portal.systems.rate_limiter import RateLimiter
+from portal.systems.session_manager import SessionManager
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def app() -> Flask:
     app = create_app(
         test_config=dict(
@@ -32,11 +36,26 @@ def client(app: Flask) -> FlaskClient:
 
 
 
-@pytest.fixture(autouse=True, scope="session")
-def init_db(app: Flask):
+@pytest.fixture()
+def init_db(app: Flask, app_context: Flask):
     db.init_app(app)
-    with app.app_context():
-        db.create_all()
+    db.create_all()
     yield
-    with app.app_context():
-        db.drop_all()
+    db.session.remove()
+    db.drop_all()
+
+@pytest.fixture()
+def session(app_context, init_db):
+    return SessionManager(db, None, app_context)
+
+@pytest.fixture()
+def mailer(app_context):
+    return BaseMailer.build(app_context)
+
+@pytest.fixture()
+def rate_limiter(init_db, app_context):
+    return RateLimiter(db, app_context)
+
+@pytest.fixture()
+def authentication(mailer, session, rate_limiter, app_context, init_db):
+    return Authentication(mailer, db, session, rate_limiter, app_context)
