@@ -51,9 +51,10 @@ class Session(Base):
         return amr
 
 
-class User(PkModel):
+class User(Base):
     __tablename__ = "user"
 
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     display_name: Mapped[Optional[str]]
     email: Mapped[str]
     totp_secret: Mapped[Optional[str]]
