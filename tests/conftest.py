@@ -45,7 +45,7 @@ def init_db(app: Flask, app_context: Flask):
     db.drop_all()
 
 @pytest.fixture()
-def session(app_context, init_db):
+def session_manager(init_db, app_context):
     return SessionManager(db, None, app_context)
 
 @pytest.fixture()
@@ -57,5 +57,5 @@ def rate_limiter(init_db, app_context):
     return RateLimiter(db, app_context)
 
 @pytest.fixture()
-def authentication(mailer, session, rate_limiter, app_context, init_db):
-    return Authentication(mailer, db, session, rate_limiter, app_context)
+def authentication(mailer, session_manager, rate_limiter, app_context, init_db):
+    return Authentication(mailer, db, session_manager, rate_limiter, app_context)

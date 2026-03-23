@@ -1,17 +1,13 @@
+
+
 from datetime import datetime, timedelta, timezone
-import secrets
 import uuid
+
 import pytest
 
-from portal.extensions import db, session_manager
-from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
-from portal.models import Session, User
-
-
-@pytest.fixture()
-def init_session_manager(app, init_db):
-    session_manager.init_app(app)
-
+from portal.extensions import db
+from portal.helpers import build_secure_uri, get_from_secure_uri
+from portal.models.user import Session, User
 
 @pytest.fixture()
 def example_endpoint(app):
@@ -19,16 +15,15 @@ def example_endpoint(app):
     def example():
         return "OK"
 
-
 @pytest.fixture()
-def user_model(app_context):
-    user = User(display_name="Test User")
+def user_model(init_db):
+    user = User(display_name="Test User", email="example@example.com")
     db.session.add(user)
     db.session.commit()
     return user
 
 @pytest.fixture()
-def session_model(user_model, app_context):
+def session_model(user_model):
     # We set now to a few seconds in the past so we can do some update checks
     now = datetime.now(timezone.utc) - timedelta(seconds=10)
     sess = Session(
@@ -37,23 +32,23 @@ def session_model(user_model, app_context):
         user=user_model,
         created=now,
         last_active=now,
+        last_auth=now,
     )
     db.session.add(sess)
     db.session.commit()
     return sess
 
-
 @pytest.fixture()
 def session_cookie(
-    client, app_context, init_session_manager, session_model
+    client, session_manager, session_model
 ):
-    cookie_name = session_manager._state.cookie_name
-    cookie_val = build_secure_uri(session_model)
+    cookie_name = session_manager.cookie_name
+    cookie_val = build_secure_uri(session_model, "secret_hash")
     db.session.commit()
     client.set_cookie(cookie_name, cookie_val)
 
 
-def test_load_session(client, session_cookie, example_endpoint, session_model):
+def test_load_session(client, session_cookie, example_endpoint, session_model, session_manager):
     # We set an arbitrary authentication so the session doesn't get deleted
     session_model.last_email_auth = datetime.now(timezone.utc)
     db.session.commit()
@@ -67,7 +62,7 @@ def test_load_session(client, session_cookie, example_endpoint, session_model):
     assert session_model.last_active > initial_last_active
 
 
-def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_model):
+def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_model, session_manager):
     session_model.last_keyfob_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -76,8 +71,8 @@ def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_m
     assert session_manager.current_context == {"plastic"}
 
 
-def test_keyfob_max_idle(client, session_cookie, example_endpoint, session_model):
-    long_time_ago = datetime.now(timezone.utc) - session_manager._state.keyfob_max_idle
+def test_keyfob_max_idle(client, session_cookie, example_endpoint, session_model, session_manager):
+    long_time_ago = datetime.now(timezone.utc) - session_manager.keyfob_max_idle
     session_model.last_keyfob_auth = long_time_ago
     session_model.last_active = long_time_ago
     session_model.created = long_time_ago
@@ -89,7 +84,7 @@ def test_keyfob_max_idle(client, session_cookie, example_endpoint, session_model
     assert session_manager.current_session == None
 
 
-def test_recent_email_auth(client, session_cookie, example_endpoint, session_model):
+def test_recent_email_auth(client, session_cookie, example_endpoint, session_model, session_manager):
     session_model.last_email_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -98,7 +93,7 @@ def test_recent_email_auth(client, session_cookie, example_endpoint, session_mod
     assert session_manager.current_context == {"bronze", "silver"}
 
 
-def test_recent_totp_auth(client, session_cookie, example_endpoint, session_model):
+def test_recent_totp_auth(client, session_cookie, example_endpoint, session_model, session_manager):
     session_model.last_totp_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -107,7 +102,7 @@ def test_recent_totp_auth(client, session_cookie, example_endpoint, session_mode
     assert session_manager.current_context == {"bronze", "silver", "gold"}
 
 
-def test_recent_passkey_auth(client, session_cookie, example_endpoint, session_model):
+def test_recent_passkey_auth(client, session_cookie, example_endpoint, session_model, session_manager):
     session_model.last_passkey_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -118,10 +113,10 @@ def test_recent_passkey_auth(client, session_cookie, example_endpoint, session_m
 
 @pytest.mark.parametrize("auth_type", ["email", "totp", "passkey"])
 def test_elevated_auth_expiry(
-    client, session_cookie, example_endpoint, session_model, auth_type
+    client, session_cookie, example_endpoint, session_model, auth_type, session_manager
 ):
     some_time_ago = (
-        datetime.now(timezone.utc) - session_manager._state.elevated_auth_expiry
+        datetime.now(timezone.utc) - session_manager.elevated_auth_expiry
     )
     setattr(session_model, f"last_{auth_type}_auth", some_time_ago)
     db.session.commit()
@@ -133,9 +128,9 @@ def test_elevated_auth_expiry(
 
 @pytest.mark.parametrize("auth_type", ["email", "totp", "passkey"])
 def test_login_max_idle(
-    client, session_cookie, example_endpoint, session_model, auth_type
+    client, session_cookie, example_endpoint, session_model, auth_type, session_manager
 ):
-    long_time_ago = datetime.now(timezone.utc) - session_manager._state.login_max_idle
+    long_time_ago = datetime.now(timezone.utc) - session_manager.login_max_idle
     setattr(session_model, f"last_{auth_type}_auth", long_time_ago)
     session_model.last_active = long_time_ago
     session_model.created = long_time_ago
@@ -148,7 +143,7 @@ def test_login_max_idle(
 
 
 @pytest.mark.parametrize("auth_type", ["email", "keyfob", "totp", "passkey"])
-def test_authenticate_session(app, client, init_session_manager, user_model, auth_type):
+def test_authenticate_session(app, client, user_model, auth_type, session_manager):
     now = datetime.now(timezone.utc)
 
     @app.route("/example")
@@ -158,7 +153,7 @@ def test_authenticate_session(app, client, init_session_manager, user_model, aut
 
     response = client.get("/example")
 
-    cookie = client.get_cookie(session_manager._state.cookie_name)
+    cookie = client.get_cookie(session_manager.cookie_name)
     assert cookie is not None
     session = get_from_secure_uri(db, Session, cookie.value, "secret_hash")
     assert session is not None
