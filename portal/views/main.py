@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, url_for
 import sqlalchemy as sa
 
-from portal.extensions import db, session_manager
+from portal.extensions import db, hs
 from portal.models import App
 
 bp = Blueprint("main", __name__, url_prefix="/")
@@ -15,5 +15,5 @@ def index():
 
 @bp.route("/logout")
 def logout():
-    session_manager.logout()
+    hs.session.logout()
     return redirect(url_for(".index"))
