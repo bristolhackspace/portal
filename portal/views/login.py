@@ -36,7 +36,7 @@ def index():
             auth_methods["email"] = flow.email_verified
         if flow.totp_verified:
             auth_methods["totp"] = flow.totp_verified
-        hs.session.authenticate_session(flow.user, methods=auth_methods)
+        hs.session.authenticate_session(flow.member, methods=auth_methods)
         hs.authentication.delete_flow(commit=False)
         db.session.commit()
 

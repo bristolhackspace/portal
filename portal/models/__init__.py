@@ -2,7 +2,7 @@ from .base import Base
 from .apps import App
 from .authentication import AuthFlow
 from .role import Role
-from .user import Session, User
+from .member import Session, Member
 
 __all__ = [
     "Base",
@@ -12,5 +12,5 @@ __all__ = [
     "AuthorizationCode",
     "Role",
     "Session",
-    "User"
+    "Member"
 ]

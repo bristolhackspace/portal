@@ -23,7 +23,7 @@ from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
 
 from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
-from portal.models import AuthFlow, User
+from portal.models import AuthFlow, Member
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
 
@@ -92,8 +92,8 @@ class Authentication:
 
         flow.ip_rate_limit_key = ip_rate_limit_key
 
-        query = sa.select(User).filter(User.email == email)
-        user = self.db.session.execute(query).scalar_one_or_none()
+        query = sa.select(Member).filter(Member.email == email)
+        member = self.db.session.execute(query).scalar_one_or_none()
 
         now = datetime.now(timezone.utc)
 
@@ -105,7 +105,7 @@ class Authentication:
 
         flow_id = flow.id.hex
         flow.expiry=now + self.flow_expiry
-        flow.user = user
+        flow.member = member
 
         magic_url = url_for(
             magic_link_route, flow_id=flow_id, otp=otp, _external=True
@@ -113,9 +113,9 @@ class Authentication:
 
         self.db.session.commit()
 
-        if user:
+        if member:
             self.mailer.send_email(
-                user=user,
+                member=member,
                 template="emails/magic_link",
                 subject="Your Login code",
                 otp=otp,
@@ -180,9 +180,9 @@ class Authentication:
             if flow.ip_rate_limit_key:
                 self.rate_limiter.reset_rate_limit(flow.ip_rate_limit_key, commit=False)
 
-            if flow.user:
-                self.rate_limiter.reset_rate_limit(slow_rate_limit_key(flow.user.email), commit=False)
-                self.rate_limiter.reset_rate_limit(fast_rate_limit_key(flow.user.email), commit=False)
+            if flow.member:
+                self.rate_limiter.reset_rate_limit(slow_rate_limit_key(flow.member.email), commit=False)
+                self.rate_limiter.reset_rate_limit(fast_rate_limit_key(flow.member.email), commit=False)
 
 
             return True
@@ -207,7 +207,7 @@ class Authentication:
             return FlowStep.NOT_STARTED
         if not flow.email_verified:
             return FlowStep.VERIFY_EMAIL
-        if flow.user and flow.user.totp_secret:
+        if flow.member and flow.member.totp_secret:
             if not flow.totp_verified:
                 return FlowStep.VERIFY_TOTP
         return FlowStep.FINISHED
