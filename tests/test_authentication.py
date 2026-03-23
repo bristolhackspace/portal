@@ -18,7 +18,7 @@ def endpoints(app):
         return "OK"
 
 @pytest.fixture()
-def user_model(app_context):
+def user_model(init_db):
     user = User(display_name="Test User", email="example@example.com")
     db.session.add(user)
     db.session.commit()
@@ -26,7 +26,7 @@ def user_model(app_context):
 
 
 @pytest.fixture()
-def flow_model(app_context, user_model):
+def flow_model(user_model):
     flow = AuthFlow(
         id=uuid.uuid4(),
         user=user_model,
@@ -110,14 +110,17 @@ def test_verify_otp(app, client, authentication, user_model, flow_cookie, flow_m
     flow_model.email_otp_hash = ph.hash(otp)
     db.session.commit()
 
+    verify_result = None
+
     @app.route("/verify")
     def verify():
+        nonlocal verify_result
         authentication.load_flow()
-        assert authentication.verify_email_otp(otp) == True
+        verify_result = authentication.verify_email_otp(otp)
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert verify_result == True
 
 def test_fail_invalid_otp(app, client, authentication, user_model, flow_cookie, flow_model):
     ph = PasswordHasher()
@@ -125,49 +128,61 @@ def test_fail_invalid_otp(app, client, authentication, user_model, flow_cookie, 
     flow_model.email_otp_hash = ph.hash(otp)
     db.session.commit()
 
+    verify_result = None
+
     @app.route("/verify")
     def verify():
+        nonlocal verify_result
         authentication.load_flow()
-        assert authentication.verify_email_otp("678124") == False
+        verify_result = authentication.verify_email_otp("678124")
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert verify_result == False
 
 
 def test_flow_next_step_no_flow(app, client, authentication, user_model, flow_cookie, flow_model):
+    flow_step = None
+
     @app.route("/verify")
     def verify():
-        assert authentication.flow_next_step() == FlowStep.NOT_STARTED
+        nonlocal flow_step
+        flow_step = authentication.flow_next_step()
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert flow_step == FlowStep.NOT_STARTED
 
 def test_flow_next_step_not_started(app, client, authentication, user_model, flow_cookie, flow_model):
+    flow_step = None
+
     @app.route("/verify")
     def verify():
+        nonlocal flow_step
         authentication.load_flow()
-        assert authentication.flow_next_step() == FlowStep.NOT_STARTED
+        flow_step = authentication.flow_next_step()
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert flow_step == FlowStep.NOT_STARTED
 
 def test_flow_next_step_verify_email(app, client, authentication, user_model, flow_cookie, flow_model):
     ph = PasswordHasher()
     otp = "678123"
     flow_model.email_otp_hash = ph.hash(otp)
-    db.session.commit() 
-    
+    db.session.commit()
+
+    flow_step = None
+
     @app.route("/verify")
     def verify():
+        nonlocal flow_step
         authentication.load_flow()
-        assert authentication.flow_next_step() == FlowStep.VERIFY_EMAIL
+        flow_step = authentication.flow_next_step()
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert flow_step == FlowStep.VERIFY_EMAIL
 
 
 def test_flow_next_step_finished(app, client, authentication, user_model, flow_cookie, flow_model):
@@ -176,12 +191,15 @@ def test_flow_next_step_finished(app, client, authentication, user_model, flow_c
     flow_model.email_otp_hash = ph.hash(otp)
     flow_model.email_verified = datetime.now(timezone.utc)
     db.session.commit()
-    
+
+    flow_step = None
+
     @app.route("/verify")
     def verify():
+        nonlocal flow_step
         authentication.load_flow()
-        assert authentication.flow_next_step() == FlowStep.FINISHED
+        flow_step = authentication.flow_next_step()
         return "OK"
 
     response = client.get("/verify")
-    assert response.status_code == 200
+    assert flow_step == FlowStep.FINISHED
