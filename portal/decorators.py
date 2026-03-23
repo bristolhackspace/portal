@@ -21,3 +21,9 @@ def login_required(f):
             return redirect(url_for("login.index"))
         return f(*args, **kwargs)
     return wrapper_fn
+
+def token_required(f):
+    @functools.wraps(f)
+    def wrapper_fn(*args, **kwargs):
+        return
+    return wrapper_fn
