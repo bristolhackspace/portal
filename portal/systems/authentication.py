@@ -25,7 +25,6 @@ import sqlalchemy as sa
 from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
 from portal.models import AuthFlow, User
 from portal.systems.mailer import BaseMailer
-from portal.systems.session_manager import SessionManager
 from portal.systems.rate_limiter import RateLimiter
 
 
@@ -41,13 +40,11 @@ class Authentication:
         self,
         mailer: BaseMailer,
         db: SQLAlchemy,
-        session_manager: SessionManager,
         rate_limiter: RateLimiter,
         app: Flask,
     ):
         self.mailer = mailer
         self.db = db
-        self.session_manager = session_manager
         self.rate_limiter = rate_limiter
 
         self.flow_expiry = as_timedelta(
@@ -189,32 +186,6 @@ class Authentication:
 
 
             return True
-
-    def try_authenticate(self, default_redirect_route: str) -> FlowStep|Response:
-        flow_step = self.flow_next_step(flow)
-
-        if flow_step != FlowStep.FINISHED:
-            return flow_step
-
-        flow = self.current_flow
-
-        auth_methods = {}
-
-        if flow.email_verified:
-            auth_methods["email"] = flow.email_verified
-
-        if flow.totp_verified:
-            auth_methods["totp"] = flow.totp_verified
-
-        self.session_manager.authenticate_session(flow.user, methods=auth_methods)
-        self.db.session.delete(flow)
-        self.db.session.commit()
-
-        response = redirect(flow.redirect_uri or default_redirect_route)
-        response = make_response(response)
-        response.delete_cookie(self.cookie_name)
-
-        return response
 
     def delete_flow(self, commit:bool=True):
         flow = self.current_flow

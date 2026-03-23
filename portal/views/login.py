@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from wtforms import EmailField, StringField
 from wtforms.validators import DataRequired
 
-from portal.extensions import hs
+from portal.extensions import hs, db
 from portal.systems.authentication import FlowStep
 
 bp = Blueprint("login", __name__, url_prefix="/login")
@@ -40,14 +40,14 @@ def index():
         hs.authentication.delete_flow(commit=False)
         db.session.commit()
 
-        return step
+        return redirect(flow.redirect_uri or "main.index")
     elif step == FlowStep.VERIFY_EMAIL and "flow_id" in request.args:
-        if authentication.verify_email_otp(request.args.get("otp", "")):
+        if hs.authentication.verify_email_otp(request.args.get("otp", "")):
             return redirect(url_for(".index"))
         return render_template("login/invalid_code.html.j2")
     elif step == FlowStep.VERIFY_EMAIL:
         form = OtpForm()
-        if form.validate_on_submit() and authentication.verify_email_otp(form.otp.data):
+        if form.validate_on_submit() and hs.authentication.verify_email_otp(form.otp.data):
             return redirect(url_for(".index"))
         return render_template("login/otp.html.j2", flow=flow, form=form)
     elif step == FlowStep.FINISHED:
@@ -57,6 +57,6 @@ def index():
         if form.validate_on_submit():
             # Validation will ensure email is not None
             email = typing.cast(str, form.email.data)
-            flow = authentication.send_magic_email(email, "login.index")
+            flow = hs.authentication.send_magic_email(email, "login.index")
             return redirect(url_for(".index"))
         return render_template("login/index.html.j2", form=form)
