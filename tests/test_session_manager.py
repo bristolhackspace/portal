@@ -7,7 +7,7 @@ import pytest
 
 from portal.extensions import db
 from portal.helpers import build_secure_uri, get_from_secure_uri
-from portal.models.user import Session, User
+from portal.models.member import Session, Member
 
 @pytest.fixture()
 def example_endpoint(app):
@@ -16,20 +16,20 @@ def example_endpoint(app):
         return "OK"
 
 @pytest.fixture()
-def user_model(init_db):
-    user = User(display_name="Test User", email="example@example.com")
-    db.session.add(user)
+def member_model(init_db):
+    member = Member(display_name="Test Member", email="example@example.com")
+    db.session.add(member)
     db.session.commit()
-    return user
+    return member
 
 @pytest.fixture()
-def session_model(user_model):
+def session_model(member_model):
     # We set now to a few seconds in the past so we can do some update checks
     now = datetime.now(timezone.utc) - timedelta(seconds=10)
     sess = Session(
         id=uuid.uuid4(),
         secret_hash="",
-        user=user_model,
+        member=member_model,
         created=now,
         last_active=now,
         last_auth=now,
@@ -143,12 +143,12 @@ def test_login_max_idle(
 
 
 @pytest.mark.parametrize("auth_type", ["email", "keyfob", "totp", "passkey"])
-def test_authenticate_session(app, client, user_model, auth_type, session_manager):
+def test_authenticate_session(app, client, member_model, auth_type, session_manager):
     now = datetime.now(timezone.utc)
 
     @app.route("/example")
     def example():
-        session_manager.authenticate_session(user_model, {auth_type: now})
+        session_manager.authenticate_session(member_model, {auth_type: now})
         return "OK"
 
     response = client.get("/example")

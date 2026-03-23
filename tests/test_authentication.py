@@ -7,7 +7,7 @@ import yarl
 
 from portal.extensions import db
 from portal.helpers import get_from_secure_uri, build_secure_uri
-from portal.models import User, AuthFlow
+from portal.models import Member, AuthFlow
 from portal.systems.authentication import Authentication, FlowStep
 from portal.systems.mailer import TestMailer
 
@@ -18,18 +18,18 @@ def endpoints(app):
         return "OK"
 
 @pytest.fixture()
-def user_model(init_db):
-    user = User(display_name="Test User", email="example@example.com")
-    db.session.add(user)
+def member_model(init_db):
+    member = Member(display_name="Test Member", email="example@example.com")
+    db.session.add(member)
     db.session.commit()
-    return user
+    return member
 
 
 @pytest.fixture()
-def flow_model(user_model):
+def flow_model(member_model):
     flow = AuthFlow(
         id=uuid.uuid4(),
-        user=user_model,
+        member=member_model,
         flow_token_hash="",
         email_otp_hash="",
         email_otp_attempts=0,
@@ -73,11 +73,11 @@ def test_begin_flow(app, client, authentication):
     assert authentication.current_flow == cookie_flow
 
 
-def test_send_magic_email(app, client, authentication, mailer, user_model):
+def test_send_magic_email(app, client, authentication, mailer, member_model):
 
     @app.route("/login")
     def login():
-        authentication.send_magic_email(user_model.email, "magic_mock")
+        authentication.send_magic_email(member_model.email, "magic_mock")
         return "OK"
 
     response = client.get("/login")
@@ -93,7 +93,7 @@ def test_send_magic_email(app, client, authentication, mailer, user_model):
     test_mailer = typing.cast(TestMailer, mailer)
     assert len(test_mailer.captured_emails) == 1
     captured_email = test_mailer.captured_emails[0]
-    assert captured_email.user == user_model
+    assert captured_email.member == member_model
     assert captured_email.kwargs['flow'] == cookie_flow
     otp = captured_email.kwargs['otp']
 
@@ -104,7 +104,7 @@ def test_send_magic_email(app, client, authentication, mailer, user_model):
     assert magic_url.query["flow_id"] == cookie_flow.id.hex
     assert magic_url.query["otp"] == otp
 
-def test_verify_otp(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_verify_otp(app, client, authentication, member_model, flow_cookie, flow_model):
     ph = PasswordHasher()
     otp = "678123"
     flow_model.email_otp_hash = ph.hash(otp)
@@ -122,7 +122,7 @@ def test_verify_otp(app, client, authentication, user_model, flow_cookie, flow_m
     response = client.get("/verify")
     assert verify_result == True
 
-def test_fail_invalid_otp(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_fail_invalid_otp(app, client, authentication, member_model, flow_cookie, flow_model):
     ph = PasswordHasher()
     otp = "678123"
     flow_model.email_otp_hash = ph.hash(otp)
@@ -141,7 +141,7 @@ def test_fail_invalid_otp(app, client, authentication, user_model, flow_cookie, 
     assert verify_result == False
 
 
-def test_flow_next_step_no_flow(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_flow_next_step_no_flow(app, client, authentication, member_model, flow_cookie, flow_model):
     flow_step = None
 
     @app.route("/verify")
@@ -153,7 +153,7 @@ def test_flow_next_step_no_flow(app, client, authentication, user_model, flow_co
     response = client.get("/verify")
     assert flow_step == FlowStep.NOT_STARTED
 
-def test_flow_next_step_not_started(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_flow_next_step_not_started(app, client, authentication, member_model, flow_cookie, flow_model):
     flow_step = None
 
     @app.route("/verify")
@@ -166,7 +166,7 @@ def test_flow_next_step_not_started(app, client, authentication, user_model, flo
     response = client.get("/verify")
     assert flow_step == FlowStep.NOT_STARTED
 
-def test_flow_next_step_verify_email(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_flow_next_step_verify_email(app, client, authentication, member_model, flow_cookie, flow_model):
     ph = PasswordHasher()
     otp = "678123"
     flow_model.email_otp_hash = ph.hash(otp)
@@ -185,7 +185,7 @@ def test_flow_next_step_verify_email(app, client, authentication, user_model, fl
     assert flow_step == FlowStep.VERIFY_EMAIL
 
 
-def test_flow_next_step_finished(app, client, authentication, user_model, flow_cookie, flow_model):
+def test_flow_next_step_finished(app, client, authentication, member_model, flow_cookie, flow_model):
     ph = PasswordHasher()
     otp = "678123"
     flow_model.email_otp_hash = ph.hash(otp)

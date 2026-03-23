@@ -5,7 +5,7 @@ from werkzeug.exceptions import BadRequest
 
 from portal.decorators import token_required
 from portal.extensions import db
-from portal.models.user import User
+from portal.models.member import Member
 
 
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
@@ -14,7 +14,7 @@ bp = Blueprint("api", __name__, url_prefix="/api/v1")
 @token_required
 def member(member_id):
     if request.method == "GET":
-        member = db.get_or_404(User, member_id)
+        member = db.get_or_404(Member, member_id)
         return {
             "display_name": member.display_name,
             "email": member.email,
@@ -24,13 +24,13 @@ def member(member_id):
         if not isinstance(fields, dict):
             raise BadRequest("Invalid JSON structure")
 
-        stmt = insert(User).values(
+        stmt = insert(Member).values(
             id=member_id,
             **fields
         )
 
         stmt = stmt.on_conflict_do_update(
-            index_elements=[User.id],
+            index_elements=[Member.id],
             set_=fields
         )
         db.session.execute(stmt)

@@ -9,7 +9,7 @@ import uuid
 
 from portal.systems.cleanup import Cleanup
 from portal.helpers import build_secure_uri, get_from_secure_uri, as_timedelta
-from portal.models import Session, User
+from portal.models import Session, Member
 
 
 class SessionManager:
@@ -58,16 +58,16 @@ class SessionManager:
             self.db.session.delete(session)
         self.db.session.commit()
 
-    def authenticate_session(self, user: User, methods: dict[str, datetime]):
+    def authenticate_session(self, member: Member, methods: dict[str, datetime]):
         """Create or authenticate a session using the provided methods
 
-        If a session doesn't currently exist then a new one will be created with the provided user.
+        If a session doesn't currently exist then a new one will be created with the provided member.
 
         The session will be updated with the authentication times provided in the methods.
 
-        If the current session was for a different user then it will be logged out before creating a new one.
+        If the current session was for a different member then it will be logged out before creating a new one.
 
-        :param user: User to authenticate
+        :param member: Member to authenticate
         :param methods: Dictionary containing authentication method names and timestamps
         """
 
@@ -77,14 +77,14 @@ class SessionManager:
         now = datetime.now(timezone.utc)
 
         session: Session | None = g.get("hs_session")
-        # If the current session is for a different user then delete it
-        if session and session.user != user:
+        # If the current session is for a different member then delete it
+        if session and session.member != member:
             self.db.session.delete(session)
             self.db.session.commit()
             session = None
 
         if session is None:
-            session = Session(id=uuid.uuid4(), created=now, user=user, last_active=now)
+            session = Session(id=uuid.uuid4(), created=now, member=member, last_active=now)
             self.db.session.add(session)
             g.hs_session = session
             latest_auth_time = datetime.fromtimestamp(0, timezone.utc)

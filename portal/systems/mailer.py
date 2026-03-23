@@ -11,21 +11,21 @@ from typing import TYPE_CHECKING, Any
 from flask import Flask, current_app, render_template
 from jinja2 import TemplateNotFound
 
-from portal.models.user import User
+from portal.models.member import Member
 
 
 class BaseMailer(ABC):
     def __init__(self, app: Flask):
         self.sender_email = app.config.get("SENDER_EMAIL", "example@example.com")
 
-    def send_email(self, user: User, template: str, subject: str, **kwargs):
-        plain_content = render_template(f"{template}.txt.j2", user=user, **kwargs)
+    def send_email(self, member: Member, template: str, subject: str, **kwargs):
+        plain_content = render_template(f"{template}.txt.j2", member=member, **kwargs)
         try:
-            html_content = render_template(f"{template}.html.j2", user=user, **kwargs)
+            html_content = render_template(f"{template}.html.j2", member=member, **kwargs)
         except TemplateNotFound:
             html_content = None
 
-        receiver_email = formataddr((user.name, user.email))
+        receiver_email = formataddr((member.display_name, member.email))
         self.raw_send_email(
             self.sender_email, receiver_email, plain_content, html_content, subject
         )
@@ -84,7 +84,7 @@ class SmtpMailer(BaseMailer):
 class TestMailer(BaseMailer):
     @dataclass
     class EmailCapture:
-        user: User
+        member: Member
         template: str
         subject: str
         kwargs: dict[str, Any]
@@ -93,10 +93,10 @@ class TestMailer(BaseMailer):
         super().__init__(app)
         self.captured_emails: list[TestMailer.EmailCapture] = []
 
-    def send_email(self, user: User, template: str, subject: str, **kwargs):
+    def send_email(self, member: Member, template: str, subject: str, **kwargs):
         self.captured_emails.append(
             self.EmailCapture(
-                user=user, template=template, subject=subject, kwargs=kwargs
+                member=member, template=template, subject=subject, kwargs=kwargs
             )
         )
 

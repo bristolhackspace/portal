@@ -9,10 +9,10 @@ from portal.models.base import Base, PkModel, UTCDateTime
 from sqlalchemy import Column, ForeignKey, Table
 
 
-user_role_association = Table(
-    "user_role",
+member_role_association = Table(
+    "member_role",
     Base.metadata,
-    Column("user_id", ForeignKey("user.id"), primary_key=True),
+    Column("member_id", ForeignKey("member.id"), primary_key=True),
     Column("role_id", ForeignKey("role.id"), primary_key=True),
 )
 
@@ -22,7 +22,7 @@ class Session(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     secret_hash: Mapped[str]
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    member_id: Mapped[int] = mapped_column(ForeignKey("member.id"))
     created: Mapped[datetime] = mapped_column(UTCDateTime())
     last_active: Mapped[datetime] = mapped_column(UTCDateTime())
     last_auth: Mapped[datetime] = mapped_column(UTCDateTime())
@@ -31,7 +31,7 @@ class Session(Base):
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
-    user: Mapped["User"] = relationship(back_populates="sessions")
+    member: Mapped["Member"] = relationship(back_populates="sessions")
 
     def calculate_amr(self) -> set[str]:
         amr = set()
@@ -51,16 +51,16 @@ class Session(Base):
         return amr
 
 
-class User(Base):
-    __tablename__ = "user"
+class Member(Base):
+    __tablename__ = "member"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     display_name: Mapped[Optional[str]]
     email: Mapped[str]
     totp_secret: Mapped[Optional[str]]
 
-    sessions: Mapped[list["Session"]] = relationship(back_populates="user")
-    roles: Mapped[list["Role"]] = relationship("Role", secondary=user_role_association)
+    sessions: Mapped[list["Session"]] = relationship(back_populates="member")
+    roles: Mapped[list["Role"]] = relationship("Role", secondary=member_role_association)
 
     def get_sub(self):
         return f"user_{self.id}"

@@ -7,7 +7,7 @@ from urllib.parse import urlencode, parse_qs
 from werkzeug import Response
 from yarl import URL
 
-from portal.models.user import Session
+from portal.models.member import Session
 from portal.systems.session_manager import SessionManager
 
 class DiscourseConnectError(Exception):
@@ -45,14 +45,14 @@ class DiscourseConnect:
         current_session = self.session.current_session
         if current_session is None:
             raise DiscourseConnectError("No valid session")
-        user = current_session.user
+        member = current_session.member
 
         # Build response payload
         response_qs = urlencode({
             "nonce": nonce,
-            "email": user.email,
-            "external_id": user.get_sub(),
-            "name": user.name,
+            "email": member.email,
+            "external_id": member.get_sub(),
+            "name": member.display_name,
         })
 
         # Encode and sign response

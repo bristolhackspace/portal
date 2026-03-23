@@ -1,6 +1,6 @@
 from typing import Optional
 from portal.models.base import Base, UTCDateTime
-from portal.models.user import User
+from portal.models.member import Member
 
 
 from sqlalchemy import ForeignKey
@@ -15,8 +15,8 @@ class AuthFlow(Base):
     __tablename__ = "auth_flow"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("user.id", onupdate="CASCADE", ondelete="CASCADE")
+    member_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("member.id", onupdate="CASCADE", ondelete="CASCADE")
     )
     flow_token_hash: Mapped[str]
     email_otp_hash: Mapped[Optional[str]]
@@ -29,4 +29,4 @@ class AuthFlow(Base):
 
     ip_rate_limit_key: Mapped[Optional[str]]
 
-    user: Mapped[Optional["User"]] = relationship()
+    member: Mapped[Optional["Member"]] = relationship()

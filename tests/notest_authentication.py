@@ -10,7 +10,7 @@ import yarl
 
 from portal.extensions import db, authentication, mailer
 from portal.helpers import build_secure_uri, get_from_secure_uri, hash_token
-from portal.models import AuthFlow, User
+from portal.models import AuthFlow, Member
 from portal.systems.mailer import _TestMailer
 
 
@@ -32,7 +32,7 @@ def endpoints(app):
 
 @pytest.fixture()
 def user_model(app_context):
-    user = User(display_name="Test User", email="example@example.com")
+    user = Member(display_name="Test User", email="example@example.com")
     db.session.add(user)
     db.session.commit()
     return user
@@ -63,7 +63,7 @@ def email_token(flow_model) -> tuple[str, str]:
 def flow_cookie(
     client, app_context, init_authentication, flow_model
 ):
-    
+
     cookie_name = authentication._state.cookie_name
     cookie_val = build_secure_uri(flow_model, "flow_token_hash")
     db.session.commit()
