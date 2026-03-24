@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request
 
 from portal.systems.discourse_connect import DiscourseConnectError
 from portal.extensions import hs
@@ -12,7 +12,8 @@ def authorize():
     current_session = hs.session_manager.current_session
 
     try:
-        return hs.discourse_auth.authenticate(request)
+        redirect_url = hs.discourse_auth.authenticate(request, current_session)
+        return redirect(str(redirect_url), 302)
     except DiscourseConnectError as ex:
         return render_template("error.html.j2", reason=ex.args[0])
 
