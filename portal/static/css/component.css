@@ -1,0 +1,18 @@
+.item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: var(--row-gap) var(--col-gap);
+    padding: 0;
+    margin: var(--row-gap) 0;
+}
+
+.item-grid > li {
+    list-style: none;
+}
+
+.item-box {
+    background-color: var(--bg-secondary-color);
+    border: var(--border-width) var(--border-color) solid;
+    border-radius: var(--border-radius);
+    padding: var(--box-padding);
+}

@@ -5,6 +5,7 @@ import tomllib
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from flask import Flask
+from flask_assets import Environment
 
 
 def create_app(test_config=None):
@@ -44,6 +45,9 @@ def create_app(test_config=None):
     if app.config.get("REGISTER_VIEWS", True):
         from . import views
         views.init_app(app)
+
+        assets = Environment()
+        assets.init_app(app)
 
     from . import demo_data
     app.register_blueprint(demo_data.bp)
