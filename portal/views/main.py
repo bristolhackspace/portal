@@ -15,5 +15,5 @@ def index():
 
 @bp.route("/logout")
 def logout():
-    hs.session.logout()
+    hs.session_manager.logout()
     return redirect(url_for(".index"))
