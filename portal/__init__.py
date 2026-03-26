@@ -19,6 +19,8 @@ def create_app(test_config=None):
         JWT_ISSUER="https://portal.example.com"
     )
 
+    app.config.from_prefixed_env('PORTAL')
+
     if test_config is None:
         # load the instance config, if it exists, when not testing
         app.config.from_file("config.toml", load=tomllib.load, text=False, silent=True)
