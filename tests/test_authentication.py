@@ -1,5 +1,6 @@
 from argon2 import PasswordHasher
 from datetime import datetime, timedelta, timezone
+from flask import request
 import pytest
 import typing
 import uuid
@@ -8,7 +9,8 @@ import yarl
 from portal.extensions import db
 from portal.helpers import get_from_secure_uri, build_secure_uri
 from portal.models import Member, AuthFlow
-from portal.systems.authentication import Authentication, FlowStep
+from portal.models.authentication import FlowStep
+from portal.systems.authentication import OtpValidationError
 from portal.systems.mailer import TestMailer
 
 @pytest.fixture(autouse=True)
@@ -115,11 +117,11 @@ def test_verify_otp(app, client, authentication, member_model, flow_cookie, flow
     @app.route("/verify")
     def verify():
         nonlocal verify_result
-        authentication.load_flow()
-        verify_result = authentication.verify_email_otp(otp)
+        flow = authentication.load_flow(request)
+        verify_result = authentication.verify_email_otp(otp, flow)
         return "OK"
 
-    response = client.get("/verify")
+    response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
     assert verify_result == True
 
 def test_fail_invalid_otp(app, client, authentication, member_model, flow_cookie, flow_model):
@@ -128,30 +130,14 @@ def test_fail_invalid_otp(app, client, authentication, member_model, flow_cookie
     flow_model.email_otp_hash = ph.hash(otp)
     db.session.commit()
 
-    verify_result = None
-
     @app.route("/verify")
     def verify():
-        nonlocal verify_result
-        authentication.load_flow()
-        verify_result = authentication.verify_email_otp("678124")
+        flow = authentication.load_flow(request)
+        with pytest.raises(OtpValidationError):
+            authentication.verify_email_otp("678124", flow)
         return "OK"
 
-    response = client.get("/verify")
-    assert verify_result == False
-
-
-def test_flow_next_step_no_flow(app, client, authentication, member_model, flow_cookie, flow_model):
-    flow_step = None
-
-    @app.route("/verify")
-    def verify():
-        nonlocal flow_step
-        flow_step = authentication.flow_next_step()
-        return "OK"
-
-    response = client.get("/verify")
-    assert flow_step == FlowStep.NOT_STARTED
+    response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
 
 def test_flow_next_step_not_started(app, client, authentication, member_model, flow_cookie, flow_model):
     flow_step = None
@@ -159,11 +145,11 @@ def test_flow_next_step_not_started(app, client, authentication, member_model, f
     @app.route("/verify")
     def verify():
         nonlocal flow_step
-        authentication.load_flow()
-        flow_step = authentication.flow_next_step()
+        flow = authentication.load_flow(request)
+        flow_step = flow.next_step()
         return "OK"
 
-    response = client.get("/verify")
+    response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
     assert flow_step == FlowStep.NOT_STARTED
 
 def test_flow_next_step_verify_email(app, client, authentication, member_model, flow_cookie, flow_model):
@@ -177,11 +163,11 @@ def test_flow_next_step_verify_email(app, client, authentication, member_model, 
     @app.route("/verify")
     def verify():
         nonlocal flow_step
-        authentication.load_flow()
-        flow_step = authentication.flow_next_step()
+        flow = authentication.load_flow(request)
+        flow_step = flow.next_step()
         return "OK"
 
-    response = client.get("/verify")
+    response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
     assert flow_step == FlowStep.VERIFY_EMAIL
 
 
@@ -197,9 +183,9 @@ def test_flow_next_step_finished(app, client, authentication, member_model, flow
     @app.route("/verify")
     def verify():
         nonlocal flow_step
-        authentication.load_flow()
-        flow_step = authentication.flow_next_step()
+        flow = authentication.load_flow(request)
+        flow_step = flow.next_step()
         return "OK"
 
-    response = client.get("/verify")
+    response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
     assert flow_step == FlowStep.FINISHED
