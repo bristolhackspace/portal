@@ -35,7 +35,6 @@ input, textarea, select {
     font: inherit;
     background-color: var(--bg-color);
     border: var(--border-width) var(--border-color) solid;
-    border-radius: var(--border-radius);
     padding: var(--box-padding);
     width: 100%;
     margin: var(--row-gap) 0;
@@ -59,6 +58,7 @@ button, .button, input[type=submit] {
     border-color: black;
     background-color: var(--button-color);
     width: auto;
+    margin: var(--row-gap) 0;
 }
 
 button:hover, .button:hover, input[type=submit]:hover {
@@ -67,4 +67,8 @@ button:hover, .button:hover, input[type=submit]:hover {
 
 label, legend {
     margin: var(--row-gap) 0;
+}
+
+.invalid-feedback {
+    color: #761308;
 }

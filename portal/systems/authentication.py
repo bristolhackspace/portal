@@ -28,12 +28,9 @@ from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
 
 
-class FlowStep(Enum):
-    NOT_STARTED = auto()
-    VERIFY_EMAIL = auto()
-    VERIFY_TOTP = auto()
-    FINISHED = auto()
-
+class OtpValidationError(Exception):
+    def __init__(self, reason: str):
+        super().__init__(reason)
 
 class Authentication:
     def __init__(
@@ -76,17 +73,16 @@ class Authentication:
         g.flow = flow
         return flow
 
-    def send_magic_email(self, email: str, magic_link_route: str):
+    def send_magic_email(self, email: str, magic_link_route: str, flow: AuthFlow|None=None) -> AuthFlow:
+        self.rate_limiter.rate_limit(fast_rate_limit_key(email), 1, timedelta(minutes=1))
+        self.rate_limiter.rate_limit(slow_rate_limit_key(email), 5, timedelta(hours=12))
+
         ip_rate_limit_key = None
         if request.remote_addr is not None:
             ip_addr = self.rate_limiter.normalise_ip(request.remote_addr)
             ip_rate_limit_key = f"email_send_ip_limit:{ip_addr}"
             self.rate_limiter.rate_limit(ip_rate_limit_key, 30, timedelta(hours=12))
 
-        self.rate_limiter.rate_limit(slow_rate_limit_key(email), 5, timedelta(hours=12))
-        self.rate_limiter.rate_limit(fast_rate_limit_key(email), 1, timedelta(minutes=1))
-
-        flow = self.current_flow
         if flow is None:
             flow = self.begin_flow()
 
@@ -123,6 +119,8 @@ class Authentication:
                 magic_url=magic_url,
             )
 
+        return flow
+
     def set_flow_cookie(
         self, flow_secure_uri: str, response: Response
     ) -> Response:
@@ -139,42 +137,38 @@ class Authentication:
         response.delete_cookie(self.cookie_name)
         return response
 
-    def load_flow(self):
+    def load_flow(self, request: Request) -> AuthFlow|None:
         flow_uri = request.cookies.get(self.cookie_name, "")
         flow = get_from_secure_uri(self.db, AuthFlow, flow_uri, attribute="flow_token_hash")
-
         if flow is None:
-            return
-
-        g.flow = flow
+            return None
+        if flow.id.hex != request.args.get("flow_id"):
+            return None
+        if flow.expiry < datetime.now(timezone.utc):
+            return None
+        return flow
 
     @property
     def current_flow(self) -> AuthFlow | None:
         return g.get("flow")
 
-    def verify_email_otp(self, otp: str) -> bool:
-        with self.db.session.begin(nested=True):
-            flow = self.current_flow
-
-            if not flow:
-                return False
-
+    def verify_email_otp(self, otp: str, flow: AuthFlow) -> typing.Literal[True]:
+        try:
             flow.email_otp_attempts += 1
             if flow.email_otp_attempts > self.email_otp_max_attempts:
-                return False
+                raise OtpValidationError("Maximum attempts exceeded")
 
-            if flow.expiry < datetime.now(timezone.utc):
-                return False
-
+            # It shouldn't actually be possible for this to fail due to the view checking
+            # flow_next_step to decide whether to verify the OTP.
             if not flow.email_otp_hash:
-                return False
+                raise OtpValidationError("Email not sent yet")
 
             ph = PasswordHasher()
 
             try:
                 ph.verify(flow.email_otp_hash, otp)
             except (VerificationError, InvalidHashError):
-                return False
+                raise OtpValidationError("Incorrect code. Check you are using the most recent email.")
 
             flow.email_verified = datetime.now(timezone.utc)
             if flow.ip_rate_limit_key:
@@ -184,33 +178,16 @@ class Authentication:
                 self.rate_limiter.reset_rate_limit(slow_rate_limit_key(flow.member.email), commit=False)
                 self.rate_limiter.reset_rate_limit(fast_rate_limit_key(flow.member.email), commit=False)
 
-
             return True
+        finally:
+            self.db.session.commit()
 
-    def delete_flow(self, commit:bool=True):
-        flow = self.current_flow
-        if not flow:
-            return
-
+    def delete_flow(self, flow: AuthFlow, commit:bool=True):
         self.db.session.delete(flow)
         if commit:
             self.db.session.commit()
 
         after_this_request(self.delete_flow_cookie)
-
-
-    def flow_next_step(self) -> FlowStep:
-        flow = self.current_flow
-        if not flow:
-            return FlowStep.NOT_STARTED
-        if not flow.email_otp_hash:
-            return FlowStep.NOT_STARTED
-        if not flow.email_verified:
-            return FlowStep.VERIFY_EMAIL
-        if flow.member and flow.member.totp_secret:
-            if not flow.totp_verified:
-                return FlowStep.VERIFY_TOTP
-        return FlowStep.FINISHED
 
 
 def slow_rate_limit_key(email: str) -> str:

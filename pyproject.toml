@@ -19,5 +19,6 @@ dependencies = [
     "pyjwt ~= 2.10.1",
     "yarl ~= 1.22.0",
     "authlib ~= 1.6.5",
-    "argon2-cffi ~= 25.1.0"
+    "argon2-cffi ~= 25.1.0",
+    "cssmin ~= 0.2.0"
 ]

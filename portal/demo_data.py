@@ -14,6 +14,7 @@ def make_demo_data():
     db.create_all()
 
     demo_member = Member(
+        id=0,
         display_name="Demo Member",
         email="example@example.com"
     )

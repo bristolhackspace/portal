@@ -9,7 +9,9 @@ from sqlalchemy.dialects.postgresql import insert
 from portal.models.rate_limit import RateLimit
 
 class RateLimitError(Exception):
-    pass
+    def __init__(self, expiry: datetime):
+        self.expiry = expiry
+        super().__init__()
 
 class RateLimiter:
     def __init__(self, db: SQLAlchemy, app: Flask):
@@ -48,7 +50,7 @@ class RateLimiter:
             self.db.session.commit()
 
         if result.count > result.limit:
-            raise RateLimitError()
+            raise RateLimitError(result.expiry)
 
     def reset_rate_limit(self, key: str, commit: bool=True):
         query = sa.delete(RateLimit).where(RateLimit.key==key)
