@@ -59,6 +59,9 @@ class DiscourseConnect:
             "name": member.display_name,
         }
 
+        if member.username:
+            response["username"] = member.username
+
         # Encode and sign response
         response_encoded = encode_sso(response)
         response_digest = compute_sig(secret, response_encoded)

@@ -57,6 +57,7 @@ class Member(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     display_name: Mapped[Optional[str]]
     email: Mapped[str]
+    username: Mapped[Optional[str]]
     totp_secret: Mapped[Optional[str]]
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="member")
