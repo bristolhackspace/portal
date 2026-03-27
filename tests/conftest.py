@@ -5,6 +5,7 @@ import pytest
 from portal import create_app
 from portal.extensions import db
 from portal.systems.authentication import Authentication
+from portal.systems.cleanup import Cleanup
 from portal.systems.discourse_connect import DiscourseConnect
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
@@ -49,6 +50,10 @@ def init_db(app: Flask, app_context: Flask):
 @pytest.fixture()
 def session_manager(init_db, app_context):
     return SessionManager(db, None, app_context)
+
+@pytest.fixture()
+def cleanup(app_context):
+    return Cleanup(app_context)
 
 @pytest.fixture()
 def mailer(app_context):

@@ -1,0 +1,74 @@
+.form-2col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 var(--col-gap); /* No row gap as contained elements will have margin */
+    max-width: 50rem;
+    margin: var(--row-gap) auto;
+}
+
+.form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 var(--col-gap); /* No row gap as contained elements will have margin */
+    max-width: 40rem;
+    margin: var(--row-gap) auto;
+}
+
+.fieldset {
+    border: var(--border-width) var(--border-color) solid;
+    border-radius: var(--border-radius);
+    padding: var(--box-padding);
+}
+
+@media screen and (min-width: 40rem){
+    .form-2col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));;
+    }
+
+    .form-field-2col {
+        grid-column: span 2;
+    }
+}
+
+input, textarea, select {
+    display: block;
+    font: inherit;
+    background-color: var(--bg-color);
+    border: var(--border-width) var(--border-color) solid;
+    padding: var(--box-padding);
+    width: 100%;
+    margin: var(--row-gap) 0;
+}
+
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+    border-color: black;
+    box-shadow: none;
+    outline: black solid 0.1rem;
+}
+
+button, .button, input[type=submit] {
+    display: inline-block;
+    font: inherit;
+    color: var(--button-font-color);
+    text-decoration: none;
+    padding: var(--button-padding);
+    border-radius: 0;
+    border-width: 0 0 2px 0;
+    border-style: solid;
+    border-color: black;
+    background-color: var(--button-color);
+    width: auto;
+    margin: var(--row-gap) 0;
+}
+
+button:hover, .button:hover, input[type=submit]:hover {
+    background-color: var(--button-hover-color);
+}
+
+label, legend {
+    margin: var(--row-gap) 0;
+}
+
+.invalid-feedback {
+    color: #761308;
+}

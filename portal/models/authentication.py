@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from typing import Optional
 from portal.models.base import Base, UTCDateTime
 from portal.models.member import Member
@@ -10,6 +11,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from uuid import UUID
 
+
+class FlowStep(Enum):
+    NOT_STARTED = auto()
+    VERIFY_EMAIL = auto()
+    VERIFY_TOTP = auto()
+    FINISHED = auto()
 
 class AuthFlow(Base):
     __tablename__ = "auth_flow"
@@ -30,3 +37,13 @@ class AuthFlow(Base):
     ip_rate_limit_key: Mapped[Optional[str]]
 
     member: Mapped[Optional["Member"]] = relationship()
+
+    def next_step(self):
+        if not self.email_otp_hash:
+            return FlowStep.NOT_STARTED
+        if not self.email_verified:
+            return FlowStep.VERIFY_EMAIL
+        if self.member and self.member.totp_secret:
+            if not self.totp_verified:
+                return FlowStep.VERIFY_TOTP
+        return FlowStep.FINISHED

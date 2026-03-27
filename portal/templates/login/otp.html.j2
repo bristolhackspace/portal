@@ -6,10 +6,13 @@
 
 {% block contents %}
 <div class="container">
-    <form method="POST" action="">
+    <form method="POST">
         {{ form.hidden_tag() }}
-        {{ wtf.input(form.otp, form) }}
+        {{ wtf.input(form.otp, form, autocomplete="one-time-code", field_class="otp-field", inputmode="numeric", autofocus="") }}
         <button type="submit" class="btn btn-primary">Submit</button>
+        {% if resend_email_url %}
+        or <a href="{{resend_email_url}}">resend email</a>.
+        {% endif %}
     </form>
 </div>
 {% endblock %}

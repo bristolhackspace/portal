@@ -1,0 +1,10 @@
+
+.otp-field {
+    width: 15rem;
+    font-size: 2.0rem;
+}
+
+.otp-invalid-feedback {
+    color: #761308;
+    text-align: center;
+}

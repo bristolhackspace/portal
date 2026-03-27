@@ -4,26 +4,26 @@
         <!-- set the encoding of your site -->
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="icon" href="{{url_for('static',filename='images/logo1.1_notext.svg')}}" />
+        <link rel="icon" href="{{ url_for('static', filename='images/logo1.1_notext.svg') }}" />
 
-        <title>{% block title %}{% endblock %} - {{ config["SITE_NAME"] }}</title>
-        <meta property="og:title" content="{{ self.title() }} - {{ config['SITE_NAME'] }}" />
+        <title>{% block title %}{% endblock %} - Bristol Hackspace</title>
+        <meta property="og:title" content="{{ self.title() }} - Bristol Hackspace" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="{{ request.base_url }}" />
-        <!-- <meta property="og:image" content="{{url_for('static',filename='images/logo300x300.png')}}"> -->
-        {% block metatags %}
-        {% endblock %}
+        <meta property="og:url" content="/" />
+        <!-- <meta property="og:image" content="images/logo300x300.png"> -->
 
         <!-- Custom styles for this template -->
-        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-
+        {% assets filters='cssmin', output="all.css",
+            "css/base.css", "css/header.css", "css/component.css", "css/form.css", "css/login.css" %}
+        <link href="{{ ASSET_URL }}" rel="stylesheet">
+        {% endassets %}
     </head>
     <body>
-        <header class="header">
-            <nav class="container navbar">
+        <header>
+            <nav class="navbar">
                 <a href="#" class="nav-title">
-                    <!-- <img src="{{url_for('static', filename='images/logo.svg')}}" alt="" width="40" height="40"> -->
-                    <span>{{ config["SITE_NAME"] }}</span>
+                    <img src="{{ url_for('static', filename='images/pride halo logo.png') }}" alt="">
+                    <span>Bristol<br/>Hackspace</span>
                 </a>
                 <ul class="nav-menu">
                     <li><a href="{{ url_for('main.logout') }}" class="nav-link">Logout</a></li>
@@ -32,15 +32,13 @@
             </nav>
         </header>
 
-        <main class="main">
-        {% block contents %}
-        {% endblock %}
+        <main class="container">
+            {% block contents %}
+            {% endblock %}
         </main>
 
-        <footer class="footer">
-            <div class="container">
-                <p>© Copyright 2025 {{ config["SITE_NAME"] }}.</p>
-            </div>
+        <footer class="container">
+            <p>© Copyright 2026 Bristol Hackspace.</p>
         </footer>
     </body>
 </html>

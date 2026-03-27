@@ -6,7 +6,7 @@
 
 {% block contents %}
 <div class="container">
-    <form method="POST" action="">
+    <form method="POST">
         {{ form.hidden_tag() }}
         {{ wtf.input(form.email, form) }}
         <button type="submit" class="btn btn-primary">Request login link</button>
