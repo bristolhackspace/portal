@@ -58,7 +58,7 @@ def index():
                     form.email.errors.append("Sorry, you have been rate-limited. Please contact committee if you think this was in error.") # type: ignore
                 else:
                     form.email.errors.append(f"Too many emails sent recently. Please wait {delta_human} before sending another.") # type: ignore
-            
+
         return render_template("login/index.html.j2", form=form)
 
     step = flow.next_step()
@@ -67,7 +67,7 @@ def index():
         form = OtpForm(flow=flow, otp=request.args.get("otp"))
         if (form.is_submitted() or "otp" in request.args) and form.validate():
             return redirect(url_for(".index", flow_id=flow.id.hex))
-        
+
         resend_email_url = None
         if form.errors:
             resend_email_url = url_for(".index", flow_id=flow.id.hex, resend_email=1)
@@ -85,4 +85,9 @@ def index():
         return redirect(flow.redirect_uri or url_for("main.index"))
     else:
         raise RuntimeError("Unrecognised FlowStep")
-        
+
+
+@bp.route("/logout")
+def logout():
+    hs.session_manager.logout()
+    return redirect(url_for("main.index"))

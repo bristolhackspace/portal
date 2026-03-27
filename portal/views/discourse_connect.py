@@ -2,12 +2,13 @@ from flask import Blueprint, redirect, render_template, request
 
 from portal.systems.discourse_connect import DiscourseConnectError
 from portal.extensions import hs
-from portal.decorators import login_required
+from portal.middleware import login_required
 
 bp = Blueprint("discourse_connect", __name__, url_prefix="/dc")
 
+bp.before_request(login_required)
+
 @bp.route("/authorize")
-@login_required
 def authorize():
     current_session = hs.session_manager.current_session
 

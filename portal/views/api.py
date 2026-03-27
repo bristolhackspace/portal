@@ -3,15 +3,16 @@ from flask import Blueprint, request
 from sqlalchemy.dialects.postgresql import insert
 from werkzeug.exceptions import BadRequest
 
-from portal.decorators import token_required
+from portal.middleware import token_required
 from portal.extensions import db
 from portal.models.member import Member
 
 
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
+bp.before_request(token_required)
+
 @bp.route("/members/<int:member_id>", methods=["GET", "PUT"])
-@token_required
 def member(member_id):
     if request.method == "GET":
         member = db.get_or_404(Member, member_id)
