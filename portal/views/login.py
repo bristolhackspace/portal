@@ -15,7 +15,7 @@ from portal.systems.rate_limiter import RateLimitError
 bp = Blueprint("login", __name__, url_prefix="/login")
 
 class LoginForm(FlaskForm):
-    email = EmailField('Email', validators=[DataRequired()])
+    email = EmailField('Email associated with your Hackspace account:', validators=[DataRequired()])
 
 class OtpForm(FlaskForm):
     otp = StringField('Please enter the code sent to your email:', validators=[DataRequired()])
@@ -64,9 +64,18 @@ def index():
     step = flow.next_step()
 
     if step == FlowStep.VERIFY_EMAIL:
-        form = OtpForm(flow=flow, otp=request.args.get("otp"))
-        if (form.is_submitted() or "otp" in request.args) and form.validate():
-            return redirect(url_for(".index", flow_id=flow.id.hex))
+        otp=request.args.get("otp")
+        if otp:
+            try:
+                hs.authentication.verify_email_otp(otp, flow)
+                return redirect(url_for(".index", flow_id=flow.id.hex))
+            except OtpValidationError as e:
+                form = OtpForm(flow=flow)
+                form.otp.errors = [e.args[0]]
+        else:
+            form = OtpForm(flow=flow)
+            if form.validate_on_submit():
+                return redirect(url_for(".index", flow_id=flow.id.hex))
 
         resend_email_url = None
         if form.errors:
