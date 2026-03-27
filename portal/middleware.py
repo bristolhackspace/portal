@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
-from flask import redirect, request, url_for
+from flask import redirect, request, url_for, current_app
+import secrets
 from werkzeug import Response
+from werkzeug.datastructures import WWWAuthenticate
+from werkzeug.exceptions import Unauthorized
 
 from portal.extensions import hs
 
@@ -21,4 +24,9 @@ def login_required() -> Response | None:
 
 
 def token_required() -> Response | None:
-    return
+    api_secret = current_app.config["API_SECRET"]
+    authorization = request.headers.get("Authorization", "")
+
+    bearer = authorization.removeprefix("Bearer ")
+    if bearer == authorization or secrets.compare_digest(bearer, api_secret):
+        raise Unauthorized(www_authenticate=WWWAuthenticate("bearer"))
