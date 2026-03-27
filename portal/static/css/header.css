@@ -5,7 +5,7 @@ body > header {
 .navbar {
     display: flex;
     flex-flow: row wrap;
-    justify-content: center;
+    justify-content: space-between;
     gap: var(--row-gap) calc(var(--col-gap)*2);
     padding: var(--row-gap) var(--col-gap);
 }

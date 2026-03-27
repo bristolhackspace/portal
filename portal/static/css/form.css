@@ -14,10 +14,11 @@
     margin: var(--row-gap) auto;
 }
 
-.fieldset {
+fieldset {
     border: var(--border-width) var(--border-color) solid;
     border-radius: var(--border-radius);
     padding: var(--box-padding);
+    margin: var(--row-gap) 0;
 }
 
 @media screen and (min-width: 40rem){
