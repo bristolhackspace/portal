@@ -63,4 +63,4 @@ class Member(Base):
     roles: Mapped[list["Role"]] = relationship("Role", secondary=member_role_association)
 
     def get_sub(self):
-        return f"user_{self.id}"
+        return f"{self.id}"
