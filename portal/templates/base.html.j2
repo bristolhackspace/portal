@@ -20,13 +20,15 @@
     </head>
     <body>
         <header>
-            <nav class="navbar">
-                <a href="#" class="nav-title">
+            <nav class="navbar container">
+                <a href="{{ url_for('main.index') }}" class="nav-title">
                     <img src="{{ url_for('static', filename='images/pride halo logo.png') }}" alt="">
                     <span>Bristol<br/>Hackspace</span>
                 </a>
                 <ul class="nav-menu">
-                    <li><a href="{{ url_for('main.logout') }}" class="nav-link">Logout</a></li>
+                    {% if hs.session_manager.current_session %}
+                    <li><a href="{{ url_for('login.logout') }}" class="nav-link">Logout</a></li>
+                    {% endif %}
                     <li><a href="{{ config['WEBSITE_URL'] }}" class="nav-link">Back to our website</a></li>
                 </ul>
             </nav>

@@ -19,4 +19,6 @@ hs = cast(HackspaceSystems, LocalProxy(get_hs_systems))
 
 def init_app(app: Flask):
     db.init_app(app)
-    app.extensions["hackspace"] = HackspaceSystems(db, app)
+    hs = HackspaceSystems(db, app)
+    app.extensions["hackspace"] = hs
+    app.jinja_env.globals["hs"] = hs
