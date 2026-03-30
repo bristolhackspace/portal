@@ -8,7 +8,7 @@ bp = Blueprint("discourse_connect", __name__, url_prefix="/dc")
 
 bp.before_request(login_required)
 
-@bp.route("/authorize")
+@bp.route("/session/sso_provider")
 def authorize():
     current_session = hs.session_manager.current_session
 

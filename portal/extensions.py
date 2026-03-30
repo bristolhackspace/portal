@@ -7,6 +7,7 @@ from werkzeug.local import LocalProxy
 
 from portal import models
 from portal.systems import HackspaceSystems
+from portal.helpers import timedelta_to_human
 
 db = SQLAlchemy(metadata=models.Base.metadata)
 migrate = Migrate(db=db)
@@ -25,3 +26,4 @@ def init_app(app: Flask):
     hs = HackspaceSystems(db, app)
     app.extensions["hackspace"] = hs
     app.jinja_env.globals["hs"] = hs
+    app.jinja_env.filters["timedelta_to_human"] = timedelta_to_human

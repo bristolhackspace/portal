@@ -50,6 +50,8 @@ def as_timedelta(value: int | float | timedelta) -> timedelta:
 
 
 def timedelta_to_human(delta: timedelta) -> str:
+    if delta.days < 0:
+        return "in the past"
     if delta.days:
         if delta.days == 1:
             return "1 day"

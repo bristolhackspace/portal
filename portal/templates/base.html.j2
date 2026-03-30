@@ -35,6 +35,15 @@
         </header>
 
         <main class="container">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class="item-list">
+                {% for message in messages %}
+                <li class="item-box">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% endwith %}
             {% block contents %}
             {% endblock %}
         </main>

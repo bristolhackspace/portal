@@ -57,6 +57,7 @@ class DiscourseConnect:
             "email": member.email,
             "external_id": member.get_sub(),
             "name": member.display_name,
+            "groups": ",".join(role.name for role in member.roles)
         }
 
         if member.username:

@@ -59,9 +59,17 @@ class Member(Base):
     email: Mapped[str]
     username: Mapped[Optional[str]]
     totp_secret: Mapped[Optional[str]]
+    updated: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="member")
     roles: Mapped[list["Role"]] = relationship("Role", secondary=member_role_association)
 
     def get_sub(self):
         return f"{self.id}"
+
+    @property
+    def claims(self):
+        claims = set()
+        for role in self.roles:
+            claims.update(role.claims)
+        return claims

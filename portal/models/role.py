@@ -1,6 +1,5 @@
 from sqlalchemy import ForeignKey
-from portal.models.base import PkModel
-
+from portal.models.base import PkModel, SpaceSeparatedSet
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,5 +22,6 @@ class Role(PkModel):
     __tablename__ = "role"
 
     name: Mapped[str]
+    claims: Mapped[set[str]] = mapped_column(SpaceSeparatedSet())
 
     # claim_sets: Mapped[list["ClaimSet"]] = relationship(back_populates="role")
