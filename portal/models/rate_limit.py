@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 from portal.models.role import Role
@@ -15,3 +15,7 @@ class RateLimit(PkModel):
     limit: Mapped[int]
     count: Mapped[int]
     expiry: Mapped[datetime] = mapped_column(UTCDateTime())
+
+    def expires_in(self):
+        now = datetime.now(timezone.utc)
+        return self.expiry - now

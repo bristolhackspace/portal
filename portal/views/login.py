@@ -57,7 +57,7 @@ def index():
                 if delta.total_seconds() > 60*60:
                     form.email.errors.append("Sorry, you have been rate-limited. Please contact committee if you think this was in error.") # type: ignore
                 else:
-                    form.email.errors.append(f"Too many emails sent recently. Please wait {delta_human} before sending another.") # type: ignore
+                    form.email.errors.append(f"Too many codes sent recently. Please wait {delta_human} before sending another.") # type: ignore
 
         return render_template("login/index.html.j2", form=form)
 

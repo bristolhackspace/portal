@@ -10,6 +10,18 @@
     list-style: none;
 }
 
+.item-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--row-gap) var(--col-gap);
+    padding: 0;
+    margin: var(--row-gap) 0;
+}
+
+.item-list > li {
+    list-style: none;
+}
+
 .item-box {
     background-color: var(--bg-secondary-color);
     border: var(--border-width) var(--border-color) solid;

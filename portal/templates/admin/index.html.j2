@@ -1,0 +1,15 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Home{% endblock %}
+
+{% block contents %}
+<div class="container">
+    <ul class="app-grid">
+        <li>
+            <h2>Rate limits</h2>
+            <p>View and delete rate limits</p>
+            <a class="button" href="{{ url_for('admin.rate_limits') }}" aria-label="Open Rate Limits">Open</a>
+        </li>
+    </ul>
+</div>
+{% endblock %}

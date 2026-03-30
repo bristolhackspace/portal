@@ -1,0 +1,25 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Home{% endblock %}
+
+{% block contents %}
+<div class="container">
+    <h1>Rate limits</h1>
+    <ul class="item-list">
+        {% for rate_limit in rate_limits %}
+        <li class="item-box">
+            <dl>
+            <dt>Key</dt>
+            <dd>{{ rate_limit.key }}</dd>
+            <dt>Count</dt>
+            <dd>{{ rate_limit.count }}</dd>
+            </dl>
+            <dt>Expiry</dt>
+            <dd>{{rate_limit.expires_in() | timedelta_to_human }}</dd>
+            <dt>Delete</dt>
+            <dd><a href="{{ url_for('admin.delete_rate_limit', key=rate_limit.key) }}">Delete</a></dd>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

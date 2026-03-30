@@ -98,6 +98,7 @@ class Authentication:
         ph = PasswordHasher()
 
         flow.email_otp_hash = ph.hash(otp)
+        flow.email_otp_attempts = 0
 
         flow_id = flow.id.hex
         flow.expiry=now + self.flow_expiry
@@ -156,7 +157,7 @@ class Authentication:
         try:
             flow.email_otp_attempts += 1
             if flow.email_otp_attempts > self.email_otp_max_attempts:
-                raise OtpValidationError("Maximum attempts exceeded")
+                raise OtpValidationError("Maximum attempts exceeded. Request another code to try again.")
 
             # It shouldn't actually be possible for this to fail due to the view checking
             # flow_next_step to decide whether to verify the OTP.
