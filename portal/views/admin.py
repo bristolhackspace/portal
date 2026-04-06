@@ -4,7 +4,7 @@ import sqlalchemy as sa
 
 from portal.middleware import login_required
 from portal.extensions import db, hs
-from portal.models import RateLimit
+from portal.models import RateLimit, Member
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -13,6 +13,11 @@ bp.before_request(partial(login_required, {"portal:admin"}))
 @bp.route("/")
 def index():
     return render_template("admin/index.html.j2")
+
+@bp.route("/members")
+def members():
+    page = db.paginate(db.select(Member).order_by(Member.display_name))
+    return render_template("admin/members.html.j2", page=page)
 
 @bp.route("/rate-limits")
 def rate_limits():
