@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Optional
 from uuid import UUID
 from portal.models.role import Role
@@ -60,6 +60,9 @@ class Member(Base):
     username: Mapped[Optional[str]]
     totp_secret: Mapped[Optional[str]]
     updated: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
+
+    join_date: Mapped[Optional[date]]
+    leave_date: Mapped[Optional[date]]
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="member")
     roles: Mapped[list["Role"]] = relationship("Role", secondary=member_role_association)
