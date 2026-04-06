@@ -57,3 +57,11 @@
     border: 0.2rem solid var(--border-color);
     text-align: center;
 }
+
+.page-items {
+    text-align: center;
+}
+
+.pagination {
+    text-align: center;
+}
