@@ -1,5 +1,5 @@
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from flask import Blueprint, request
 from sqlalchemy.dialects.postgresql import insert
 from werkzeug.exceptions import BadRequest
@@ -19,8 +19,10 @@ def member(member_id):
         member = db.get_or_404(Member, member_id)
         return {
             "display_name": member.display_name,
-            "updated": member.updated.timestamp(),
+            "updated": member.updated.timestamp() if member.updated else None,
             "email": member.email,
+            "join_date": member.join_date.isoformat() if member.join_date else None,
+            "leave_date": member.leave_date.isoformat() if member.leave_date else None
         }
     else:
         fields = request.json
@@ -41,6 +43,14 @@ def member(member_id):
         email = fields.get("email")
         if email is not None:
             member_fields["email"] = email
+
+        join_date = fields.get("join_date")
+        if join_date is not None:
+            member_fields["join_date"] = date.fromisoformat(join_date)
+
+        leave_date = fields.get("leave_date")
+        if leave_date is not None:
+            member_fields["leave_date"] = date.fromisoformat(leave_date)
 
         stmt = insert(Member).values(
             id=member_id,
