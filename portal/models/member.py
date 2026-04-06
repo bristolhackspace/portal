@@ -30,6 +30,8 @@ class Session(Base):
     last_keyfob_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
+    
+    user_agent: Mapped[Optional[str]]
 
     member: Mapped["Member"] = relationship(back_populates="sessions")
 

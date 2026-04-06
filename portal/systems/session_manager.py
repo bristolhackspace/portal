@@ -84,7 +84,13 @@ class SessionManager:
             session = None
 
         if session is None:
-            session = Session(id=uuid.uuid4(), created=now, member=member, last_active=now)
+            session = Session(
+                id=uuid.uuid4(),
+                created=now,
+                member=member,
+                last_active=now,
+                user_agent=request.user_agent.string
+            )
             self.db.session.add(session)
             g.hs_session = session
             latest_auth_time = datetime.fromtimestamp(0, timezone.utc)
