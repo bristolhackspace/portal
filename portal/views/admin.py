@@ -16,9 +16,8 @@ def index():
 
 @bp.route("/rate-limits")
 def rate_limits():
-    query = sa.select(RateLimit)
-    rate_limits = db.session.execute(query).scalars()
-    return render_template("admin/rate_limits.html.j2", rate_limits=rate_limits)
+    page = db.paginate(db.select(RateLimit).order_by(RateLimit.key))
+    return render_template("admin/rate_limits.html.j2", page=page)
 
 @bp.route("/rate-limits/delete/<key>")
 def delete_rate_limit(key):
