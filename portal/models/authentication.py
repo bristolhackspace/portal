@@ -16,6 +16,7 @@ class FlowStep(Enum):
     NOT_STARTED = auto()
     VERIFY_EMAIL = auto()
     VERIFY_TOTP = auto()
+    ACQUIRE_USERNAME = auto()
     FINISHED = auto()
 
 class AuthFlow(Base):
@@ -46,4 +47,6 @@ class AuthFlow(Base):
         if self.member and self.member.totp_secret:
             if not self.totp_verified:
                 return FlowStep.VERIFY_TOTP
+        if self.member and self.member.username is None:
+            return FlowStep.ACQUIRE_USERNAME
         return FlowStep.FINISHED

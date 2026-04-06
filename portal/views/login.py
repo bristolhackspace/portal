@@ -4,10 +4,11 @@ import typing
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
 from flask_wtf import FlaskForm
 from wtforms import EmailField, StringField, ValidationError
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Regexp, Length
 
 from portal.extensions import hs, db
 from portal.helpers import timedelta_to_human
+from portal.models import Member
 from portal.models.authentication import AuthFlow, FlowStep
 from portal.systems.authentication import OtpValidationError
 from portal.systems.rate_limiter import RateLimitError
@@ -16,6 +17,13 @@ bp = Blueprint("login", __name__, url_prefix="/login")
 
 class LoginForm(FlaskForm):
     email = EmailField('Email associated with your Hackspace account:', validators=[DataRequired()])
+
+class UsernameForm(FlaskForm):
+    username = StringField('Username you would like to use:', validators=[
+        DataRequired(),
+        Regexp(r"^[\w-]+$", message="Username can only contain a-z, A-Z, 0-9 '_' and '-' characters."),
+        Length(3, 20, "Username must be between 3 and 20 characters long.")
+    ])
 
 class OtpForm(FlaskForm):
     otp = StringField('Please enter the code sent to your email:', validators=[DataRequired()])
@@ -81,6 +89,13 @@ def index():
         if form.errors:
             resend_email_url = url_for(".index", flow_id=flow.id.hex, resend_email=1)
         return render_template("login/otp.html.j2", flow=flow, form=form, resend_email_url=resend_email_url)
+    elif step == FlowStep.ACQUIRE_USERNAME:
+        form = UsernameForm()
+        if form.validate_on_submit():
+            member = typing.cast(Member, flow.member)
+            member.username = form.username.data
+            db.session.commit()
+        return render_template("login/acquire_username.html.j2", flow=flow, form=form)
     elif step == FlowStep.FINISHED:
         auth_methods = {}
         if flow.email_verified:
