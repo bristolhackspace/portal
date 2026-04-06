@@ -1,0 +1,20 @@
+{% extends "base.html.j2" %}
+
+{% import 'wtforms.html.j2' as wtf %}
+
+{% block title %}Username selection{% endblock %}
+
+{% block contents %}
+<div class="container">
+    <h1>Choose a username</h1>
+    <p>Your account currently does not have a username associated with it. This is a short alias that some of our services require to function.</p>
+    <p>Please create one below. It can contain alphanumeric characters, "-" and "_" symbols.</p>
+    <form method="POST" class="form">
+        <fieldset>
+            {{ form.hidden_tag() }}
+            {{ wtf.input(form.username, form, autocomplete="off", autofocus="") }}
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </fieldset>
+    </form>
+</div>
+{% endblock %}
