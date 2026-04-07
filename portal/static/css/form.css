@@ -59,7 +59,7 @@ button, .button, input[type=submit] {
     border-color: black;
     background-color: var(--button-color);
     width: auto;
-    margin: var(--row-gap) 0;
+    margin: 0;
 }
 
 button:hover, .button:hover, input[type=submit]:hover {

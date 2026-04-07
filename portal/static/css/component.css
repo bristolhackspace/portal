@@ -65,3 +65,7 @@
 .pagination {
     text-align: center;
 }
+
+dl {
+    margin: var(--row-gap) 0;
+}
