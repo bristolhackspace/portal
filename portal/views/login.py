@@ -95,6 +95,7 @@ def index():
             member = typing.cast(Member, flow.member)
             member.username = form.username.data
             db.session.commit()
+            return redirect(url_for(".index", flow_id=flow.id.hex))
         return render_template("login/acquire_username.html.j2", flow=flow, form=form)
     elif step == FlowStep.FINISHED:
         auth_methods = {}
