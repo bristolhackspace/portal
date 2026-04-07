@@ -22,7 +22,8 @@ def member(member_id):
             "updated": member.updated.timestamp() if member.updated else None,
             "email": member.email,
             "join_date": member.join_date.isoformat() if member.join_date else None,
-            "leave_date": member.leave_date.isoformat() if member.leave_date else None
+            "leave_date": member.leave_date.isoformat() if member.leave_date else None,
+            "username": member.username,
         }
     else:
         fields = request.json
@@ -51,6 +52,10 @@ def member(member_id):
         leave_date = fields.get("leave_date")
         if leave_date is not None:
             member_fields["leave_date"] = date.fromisoformat(leave_date)
+
+        username = fields.get("username")
+        if username is not None:
+            member_fields["username"] = username
 
         stmt = insert(Member).values(
             id=member_id,
