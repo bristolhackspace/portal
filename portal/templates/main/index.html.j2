@@ -9,7 +9,12 @@
         <li>
             <h2>{{ app.name }}</h2>
             <p>{{ app.description }}</p>
-            <a class="button" href="{{ app.url }}" aria-label="Open {{ app.name }}" target="_blank" rel="noopener noreferrer">Open</a>
+            <p>
+            {% if app.new_tab %}
+            <a class="button" href="{{ app.url }}" aria-label="Open {{ app.name }}" target="_blank" rel="noopener noreferrer">Open</a></p>
+            {% else %}
+            <a class="button" href="{{ app.url }}" aria-label="Open {{ app.name }}">Open</a></p>
+            {% endif %}
         </li>
     {% endfor %}
     </ul>
