@@ -1,0 +1,31 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Account Management{% endblock %}
+
+{% block contents %}
+<h2>Your details</h2>
+<dl>
+    <dt>Display Name</dt>
+    <dd>{{ current_session.member.display_name }}</dd>
+    <dt>Email</dt>
+    <dd>{{ current_session.member.email }}</dd>
+</dl>
+<h2>Sessions</h2>
+<ul class="item-list">
+    {% for session in current_session.member.sessions %}
+    {% set ua=ua_parse(session.user_agent) %}
+    <li class="item-box">
+        <dl>
+        <dt>Browser</dt>
+        <dd>{{ ua.user_agent.family }}</dd>
+        <dt>OS</dt>
+        <dd>{{ ua.os.family }}</dd>
+        <dt>Last active</dt>
+        <dd>{{ session.last_active.strftime("%b %d %Y %H:%M %Z") }}</dd>
+        </dl>
+        <p><a class="button" href="#">End session</a></p>
+    </li>
+    {% endfor %}
+</ul>
+
+{% endblock %}
