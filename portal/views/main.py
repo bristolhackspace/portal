@@ -16,12 +16,12 @@ def index():
     query = sa.select(App).order_by(App.order)
     apps = db.session.execute(query).scalars().all()
 
-    apps.append(App(
-        name="Account Management",
-        description="Manage account details",
-        url=url_for("main.manage", _external=True),
-        new_tab=False
-    ))
+    # apps.append(App(
+    #     name="Account Management",
+    #     description="Manage account details",
+    #     url=url_for("main.manage", _external=True),
+    #     new_tab=False
+    # ))
 
     return render_template("main/index.html.j2", apps=apps)
 
