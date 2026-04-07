@@ -3,7 +3,7 @@ from typing import Optional
 from uuid import UUID
 from portal.models.role import Role
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from portal.models.base import Base, PkModel, UTCDateTime
+from portal.models.base import Base, PkModel, UTCDateTime, LocalDateTime
 
 
 from sqlalchemy import Column, ForeignKey, Table
@@ -24,7 +24,7 @@ class Session(Base):
     secret_hash: Mapped[str]
     member_id: Mapped[int] = mapped_column(ForeignKey("member.id"))
     created: Mapped[datetime] = mapped_column(UTCDateTime())
-    last_active: Mapped[datetime] = mapped_column(UTCDateTime())
+    last_active: Mapped[datetime] = mapped_column(LocalDateTime())
     last_auth: Mapped[datetime] = mapped_column(UTCDateTime())
     last_email_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_keyfob_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
