@@ -47,3 +47,28 @@ def as_timedelta(value: int | float | timedelta) -> timedelta:
         if not isinstance(value, timedelta):
             value = timedelta(seconds=value)
         return value
+
+
+def timedelta_to_human(delta: timedelta) -> str:
+    if delta.days:
+        if delta.days == 1:
+            return "1 day"
+        else:
+            return f"{delta.days} days"
+    elif delta.seconds > 60*60:
+        hours = delta.seconds // (60*60)
+        if hours == 1:
+            return "1 hour"
+        else:
+            return f"{hours} hours"
+    elif delta.seconds > 60:
+        minutes = delta.seconds // 60
+        if minutes == 1:
+            return "1 minute"
+        else:
+            return f"{minutes} minutes"
+    else:
+        if delta.seconds == 1:
+            return "1 second"
+        else:
+            return f"{delta.seconds} seconds"

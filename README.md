@@ -7,6 +7,10 @@ Membership portal with Single-Sign-On (SSO)
 - Inside run `pip install -e .`
 - Create an `instance/conftest.toml` to configure the application (TODO list required configuration variables).
 
+### Required configuration variables
+
+- `DISCOURSE_CONNECT_SECRET`: Secret shared with Discourse Connect clients for SSO login.
+
 ## Testing
 
 The tests depend on a PostgreSQL database named `portal_test`. They will create all the required tables
