@@ -8,19 +8,28 @@ from werkzeug import Response
 from yarl import URL
 
 from portal.models.member import Session
-from portal.systems.session_manager import SessionManager
 
 class DiscourseConnectError(Exception):
     pass
 
 
+def encode_sso(sso) -> bytes:
+    query_string = urlencode(sso)
+    return base64.b64encode(query_string.encode("utf-8"))
+
+def decode_sso(sso: str) -> dict[str, list[str]]:
+    qs = base64.b64decode(sso).decode("utf-8")
+    return parse_qs(qs)
+
+def compute_sig(secret: bytes, encoded_sso: bytes):
+    return hmac.new(secret, encoded_sso, hashlib.sha256).hexdigest()
+
 class DiscourseConnect:
-    def __init__(self, session: SessionManager, app: Flask):
-        self.session = session
+    def __init__(self, app: Flask):
 
         self.secret = app.config["DISCOURSE_CONNECT_SECRET"].encode("utf-8")
 
-    def authenticate(self, request: Request) -> Response:
+    def authenticate(self, request: Request, session: Session) -> URL:
         # Extract sig and sso from request args
         sso = request.args.get("sso")
         sig = request.args.get("sig")
@@ -31,33 +40,28 @@ class DiscourseConnect:
         secret = self.secret
 
         # Check the signature is valid
-        digest = hmac.new(secret, sso.encode("utf-8"), hashlib.sha256).hexdigest()
+        digest = compute_sig(secret, sso.encode("utf-8"))
         if not hmac.compare_digest(digest, sig):
             raise DiscourseConnectError("Invalid payload")
 
         # Extract arguments from sso
-        qs = base64.b64decode(sso).decode("utf-8")
-        args = parse_qs(qs)
+        args = decode_sso(sso)
         nonce = args["nonce"][0]
         return_sso_url = args["return_sso_url"][0]
 
-        # Get current session details
-        current_session = self.session.current_session
-        if current_session is None:
-            raise DiscourseConnectError("No valid session")
-        member = current_session.member
+        member = session.member
 
         # Build response payload
-        response_qs = urlencode({
+        response = {
             "nonce": nonce,
             "email": member.email,
             "external_id": member.get_sub(),
             "name": member.display_name,
-        })
+        }
 
         # Encode and sign response
-        response_encoded = base64.b64encode(response_qs.encode("utf-8"))
-        response_digest = hmac.new(secret, response_encoded, hashlib.sha256).hexdigest()
+        response_encoded = encode_sso(response)
+        response_digest = compute_sig(secret, response_encoded)
 
         # Build redirect URL
         remote_url = URL(return_sso_url).with_query(
@@ -68,7 +72,7 @@ class DiscourseConnect:
         )
 
         # Do the redirect
-        return redirect(str(remote_url), 302)
+        return remote_url
 
 
 

@@ -5,6 +5,7 @@ import pytest
 from portal import create_app
 from portal.extensions import db
 from portal.systems.authentication import Authentication
+from portal.systems.discourse_connect import DiscourseConnect
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
 from portal.systems.session_manager import SessionManager
@@ -19,6 +20,7 @@ def app() -> Flask:
             REGISTER_EXTENSIONS=False,
             REGISTER_VIEWS=False,
             TEST_MAILER=True,
+            DISCOURSE_CONNECT_SECRET="test secret"
         )
     )
     return app
@@ -59,3 +61,7 @@ def rate_limiter(init_db, app_context):
 @pytest.fixture()
 def authentication(mailer, rate_limiter, app_context, init_db):
     return Authentication(mailer, db, rate_limiter, app_context)
+
+@pytest.fixture()
+def discourse_connect(app_context):
+    return DiscourseConnect(app_context)
