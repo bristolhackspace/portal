@@ -1,0 +1,96 @@
+:root {
+    --bg-color: #fff;
+    --bg-secondary-color: #f0eeee;
+    --color-primary: #f08818;
+    --color-error: #d3503f;
+    --color-success: #59be16;
+    --font-size: 1.125rem;
+    --font-color: #2c2c2c;
+    --font-family-sans: -apple-system, "BlinkMacSystemFont", "Avenir",
+    "Avenir Next", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --header-font: "ocr-a-extended", sans-serif;
+    --header-font-size: 2.0rem;
+    --header-font-size-sm: 1.5;
+    --header-img-size: 3em; /* em so it's 3 text rows tall */
+    --grid-max-width: 64rem;
+    --grid-gutter: 1rem;
+    --col-gap: 1.0rem;
+    --row-gap: 0.75rem;
+    --border-width: 2px;
+    --border-color: #bebdbb;
+    --border-color-active: var(--color-primary);
+    --border-radius: 6px;
+    --button-padding: 0.25rem 0.5rem;
+    --button-color: #007032;
+    --button-hover-color: #024303;
+    --button-font-color: #efefef;
+    --box-padding: 0 0.5rem;
+}
+
+@font-face {
+    font-family: 'ocr-a-extended';
+    src: url('OCRAExtended.woff2') format('woff2'),
+        url('OCRAExtended.woff') format('woff');
+    font-display: auto;
+}
+
+/*
+  Josh's Custom CSS Reset
+  https://www.joshwcomeau.com/css/custom-css-reset/
+*/
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+*:not(dialog) {
+    margin: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        interpolate-size: allow-keywords;
+    }
+}
+
+body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-size: var(--font-size);
+    color: var(--font-color);
+    font-family: "Segoe UI", "Helvetica Neue", sans-serif; /* fallback */
+    font-family: var(--font-family-sans);
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+    margin: var(--row-gap) 0;
+}
+
+p {
+    text-wrap: pretty;
+}
+h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+}
+
+.container {
+    max-width: var(--grid-max-width);
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 var(--col-gap);
+}
+
+.center {
+    text-align: center;
+}
+
+.full-width {
+    width: 100%;
+}
