@@ -7,7 +7,7 @@ from portal.extensions import hs
 def login_required(f):
     @functools.wraps(f)
     def wrapper_fn(*args, **kwargs):
-        current_session = hs.session.current_session
+        current_session = hs.session_manager.current_session
 
         try:
             max_age = int(request.values.get("max_age", ""))
