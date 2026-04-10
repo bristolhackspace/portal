@@ -20,5 +20,6 @@ dependencies = [
     "yarl ~= 1.22.0",
     "authlib ~= 1.6.5",
     "argon2-cffi ~= 25.1.0",
-    "cssmin ~= 0.2.0"
+    "cssmin ~= 0.2.0",
+    "ua-parser ~= 1.0.2"
 ]
