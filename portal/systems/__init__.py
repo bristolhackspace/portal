@@ -18,5 +18,5 @@ class HackspaceSystems:
         self.rate_limiter = RateLimiter(self.db, app)
         self.session = SessionManager(self.db, self.cleanup, app)
         self.mailer = BaseMailer.build(app)
-        self.authentication = Authentication(self.mailer, self.db, self.session, self.rate_limiter, app)
+        self.authentication = Authentication(self.mailer, self.db, self.rate_limiter, app)
         self.discourse_auth = DiscourseConnect(app)
