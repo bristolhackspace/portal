@@ -14,6 +14,11 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY="dev",
         SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres:postgres@localhost:5432/portal",
+        SQLALCHEMY_ENGINE_OPTIONS={
+            'pool_size': 5,
+            'pool_recycle' : 60,
+            'pool_pre_ping' : True
+        },
         SENDER_EMAIL="example@example.com",
         JWT_ISSUER="https://portal.example.com"
     )
