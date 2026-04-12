@@ -21,7 +21,7 @@ def endpoints(app):
 
 @pytest.fixture()
 def member_model(init_db):
-    member = Member(id=1, display_name="Test Member", email="example@example.com")
+    member = Member(id=1, display_name="Test Member", email="example@example.com", username="test_username")
     db.session.add(member)
     db.session.commit()
     return member
