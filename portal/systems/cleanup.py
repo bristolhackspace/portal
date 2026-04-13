@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from flask import Blueprint, Flask, current_app
+
+from flask import Flask, current_app
 from flask.cli import AppGroup
 
 
@@ -11,7 +12,7 @@ class Cleanup:
 
         app.cli.add_command(self.cli)
 
-        @self.cli.command('all')
+        @self.cli.command("all")
         def cleanup_all():
             for cb in self.callbacks:
                 self.do_cleanup_one(cb)
@@ -19,7 +20,7 @@ class Cleanup:
     def register_callback(self, name: str, fn: Callable[[], int]):
         """Register a cleanup callback. `fn` must return the
         number of items it has cleaned up."""
-        if name == 'all':
+        if name == "all":
             raise ValueError("All is a reserved name")
         self.callbacks[name] = fn
 

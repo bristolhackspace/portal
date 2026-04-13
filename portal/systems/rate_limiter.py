@@ -1,47 +1,44 @@
 from datetime import datetime, timedelta, timezone
+from ipaddress import IPv4Address, IPv6Address, IPv6Network, ip_address
 from typing import cast
+
+import sqlalchemy as sa
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from ipaddress import IPv4Address, IPv6Address, ip_address, IPv6Network
-import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import insert
 
 from portal.models.rate_limit import RateLimit
+
 
 class RateLimitError(Exception):
     def __init__(self, expiry: datetime):
         self.expiry = expiry
         super().__init__()
 
+
 class RateLimiter:
     def __init__(self, db: SQLAlchemy, app: Flask):
         self.db = db
 
-    def rate_limit(self, key: str, limit: int, duration: timedelta|int, commit:bool=True):
+    def rate_limit(
+        self, key: str, limit: int, duration: timedelta | int, commit: bool = True
+    ):
         now = datetime.now(timezone.utc)
         if not isinstance(duration, timedelta):
             duration = timedelta(seconds=duration)
         expiry = now + duration
 
         # Delete any expired rate limits first
-        self.db.session.execute(sa.delete(RateLimit).where(sa.and_(
-            RateLimit.key==key,
-            RateLimit.expiry < now
-        )))
-
-
-        stmt = insert(RateLimit).values(
-            key=key,
-            limit=limit,
-            count=1,
-            expiry=expiry
+        self.db.session.execute(
+            sa.delete(RateLimit).where(
+                sa.and_(RateLimit.key == key, RateLimit.expiry < now)
+            )
         )
 
+        stmt = insert(RateLimit).values(key=key, limit=limit, count=1, expiry=expiry)
+
         stmt = stmt.on_conflict_do_update(
-            index_elements=[RateLimit.key],
-            set_=dict(
-                count=RateLimit.count+1
-            )
+            index_elements=[RateLimit.key], set_=dict(count=RateLimit.count + 1)
         ).returning(RateLimit)
 
         result = cast(RateLimit, self.db.session.scalars(stmt).first())
@@ -52,14 +49,13 @@ class RateLimiter:
         if result.count > result.limit:
             raise RateLimitError(result.expiry)
 
-    def reset_rate_limit(self, key: str, commit: bool=True):
-        query = sa.delete(RateLimit).where(RateLimit.key==key)
+    def reset_rate_limit(self, key: str, commit: bool = True):
+        query = sa.delete(RateLimit).where(RateLimit.key == key)
         self.db.session.execute(query)
         if commit:
             self.db.session.commit()
 
-
-    def normalise_ip(self, ip: str|IPv4Address|IPv6Address) -> str:
+    def normalise_ip(self, ip: str | IPv4Address | IPv6Address) -> str:
         if isinstance(ip, str):
             ip = ip_address(ip)
 
@@ -69,8 +65,3 @@ class RateLimiter:
             # Strip out the lower 64 bits as these are usually randomized
             ip = IPv6Network((ip, 64), False).network_address
             return str(ip)
-
-
-
-
-

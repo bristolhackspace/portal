@@ -97,7 +97,9 @@ def submit_otp_url(client, email: TestMailer.EmailCapture) -> TestResponse:
     return response
 
 
-def submit_username(client, member_model: Member, prev_response: TestResponse) -> TestResponse:
+def submit_username(
+    client, member_model: Member, prev_response: TestResponse
+) -> TestResponse:
     username = "test_username"
     response = client.post(
         "/login/",
@@ -136,6 +138,7 @@ def test_email_login_magic_url(client, member_model):
     assert response.request.path == "/"
 
     check_valid_session(member_model)
+
 
 def test_email_login_set_username(client, member_model_no_username):
     load_initial_login_page(client)

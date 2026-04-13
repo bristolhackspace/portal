@@ -1,9 +1,9 @@
-from .base import Base
 from .apps import App
 from .authentication import AuthFlow
+from .base import Base
+from .member import Member, Session
 from .rate_limit import RateLimit
 from .role import Role
-from .member import Session, Member
 
 __all__ = [
     "Base",
@@ -14,5 +14,5 @@ __all__ = [
     "Role",
     "Session",
     "Member",
-    "RateLimit"
+    "RateLimit",
 ]

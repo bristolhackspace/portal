@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import smtplib
+import ssl
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import smtplib, ssl
-from email.utils import formataddr
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import TYPE_CHECKING, Any
+from email.mime.text import MIMEText
+from email.utils import formataddr
+from typing import Any
 
 from flask import Flask, current_app, render_template
 from jinja2 import TemplateNotFound
@@ -21,7 +22,9 @@ class BaseMailer(ABC):
     def send_email(self, member: Member, template: str, subject: str, **kwargs):
         plain_content = render_template(f"{template}.txt.j2", member=member, **kwargs)
         try:
-            html_content = render_template(f"{template}.html.j2", member=member, **kwargs)
+            html_content = render_template(
+                f"{template}.html.j2", member=member, **kwargs
+            )
         except TemplateNotFound:
             html_content = None
 

@@ -1,29 +1,38 @@
-from datetime import datetime, timezone
-from flask import redirect, request, url_for, current_app
 import secrets
+from datetime import datetime, timezone
+
+from flask import current_app, redirect, request, url_for
 from werkzeug import Response
 from werkzeug.datastructures import WWWAuthenticate
-from werkzeug.exceptions import Unauthorized, Forbidden
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from portal.extensions import hs
 
 # Below are functions which can be used with the various Flask `before_request` hooks.
 
-def login_required(claims:set[str]|list[str]|None=None, require_active_account:bool=True) -> Response | None:
+
+def login_required(
+    claims: set[str] | list[str] | None = None, require_active_account: bool = True
+) -> Response | None:
     current_session = hs.session_manager.current_session
     try:
-            max_age = int(request.values.get("max_age", ""))
+        max_age = int(request.values.get("max_age", ""))
     except ValueError:
         max_age = None
 
     now = datetime.now(timezone.utc)
 
-    if current_session is None or (max_age is not None and (now - current_session.last_auth).total_seconds() > max_age):
+    if current_session is None or (
+        max_age is not None
+        and (now - current_session.last_auth).total_seconds() > max_age
+    ):
         flow = hs.authentication.begin_flow(request.url)
         return redirect(url_for("login.index", flow_id=flow.id.hex))
 
     if require_active_account and current_session.member.leave_date is not None:
-        raise Forbidden("Sorry your account has been disabled. If you think this was a mistake please contact the committee.")
+        raise Forbidden(
+            "Sorry your account has been disabled. If you think this was a mistake please contact the committee."
+        )
 
     if claims is None:
         claims = set()

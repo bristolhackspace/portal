@@ -1,28 +1,16 @@
-from argon2 import PasswordHasher
-from argon2.exceptions import VerificationError, InvalidHashError
-from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 import functools
-import hashlib
 import secrets
 import typing
 import uuid
-from flask import (
-    Flask,
-    Request,
-    Response,
-    after_this_request,
-    current_app,
-    g,
-    make_response,
-    redirect,
-    request,
-    url_for,
-)
-from flask_sqlalchemy import SQLAlchemy
-import sqlalchemy as sa
+from datetime import datetime, timedelta, timezone
 
-from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
+import sqlalchemy as sa
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError
+from flask import Flask, Request, Response, after_this_request, g, request, url_for
+from flask_sqlalchemy import SQLAlchemy
+
+from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri
 from portal.models import AuthFlow, Member
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
@@ -31,6 +19,7 @@ from portal.systems.rate_limiter import RateLimiter
 class OtpValidationError(Exception):
     def __init__(self, reason: str):
         super().__init__(reason)
+
 
 class Authentication:
     def __init__(
@@ -49,10 +38,11 @@ class Authentication:
         )
         self.cookie_name: str = app.config.get("AUTH_FLOW_COOKIE_NAME", "flow_id")
         self.cookie_secure: bool = app.config.get("AUTH_FLOW_COOKIE_SECURE", False)
-        self.email_otp_max_attempts: int = app.config.get("AUTH_FLOW_EMAIL_OTP_MAX_ATTEMPTS", 4)
+        self.email_otp_max_attempts: int = app.config.get(
+            "AUTH_FLOW_EMAIL_OTP_MAX_ATTEMPTS", 4
+        )
 
-
-    def begin_flow(self, redirect_uri:str|None=None) -> AuthFlow:
+    def begin_flow(self, redirect_uri: str | None = None) -> AuthFlow:
         now = datetime.now(timezone.utc)
 
         flow = AuthFlow(
@@ -60,7 +50,7 @@ class Authentication:
             flow_token_hash="",
             expiry=now + self.flow_expiry,
             email_otp_attempts=0,
-            redirect_uri=redirect_uri
+            redirect_uri=redirect_uri,
         )
 
         flow_secure_uri = build_secure_uri(flow, "flow_token_hash")
@@ -73,8 +63,12 @@ class Authentication:
         g.flow = flow
         return flow
 
-    def send_magic_email(self, email: str, magic_link_route: str, flow: AuthFlow|None=None) -> AuthFlow:
-        self.rate_limiter.rate_limit(fast_rate_limit_key(email), 1, timedelta(minutes=1))
+    def send_magic_email(
+        self, email: str, magic_link_route: str, flow: AuthFlow | None = None
+    ) -> AuthFlow:
+        self.rate_limiter.rate_limit(
+            fast_rate_limit_key(email), 1, timedelta(minutes=1)
+        )
         self.rate_limiter.rate_limit(slow_rate_limit_key(email), 5, timedelta(hours=12))
 
         ip_rate_limit_key = None
@@ -101,12 +95,10 @@ class Authentication:
         flow.email_otp_attempts = 0
 
         flow_id = flow.id.hex
-        flow.expiry=now + self.flow_expiry
+        flow.expiry = now + self.flow_expiry
         flow.member = member
 
-        magic_url = url_for(
-            magic_link_route, flow_id=flow_id, otp=otp, _external=True
-        )
+        magic_url = url_for(magic_link_route, flow_id=flow_id, otp=otp, _external=True)
 
         self.db.session.commit()
 
@@ -122,9 +114,7 @@ class Authentication:
 
         return flow
 
-    def set_flow_cookie(
-        self, flow_secure_uri: str, response: Response
-    ) -> Response:
+    def set_flow_cookie(self, flow_secure_uri: str, response: Response) -> Response:
         response.set_cookie(
             key=self.cookie_name,
             value=flow_secure_uri,
@@ -138,9 +128,11 @@ class Authentication:
         response.delete_cookie(self.cookie_name)
         return response
 
-    def load_flow(self, request: Request) -> AuthFlow|None:
+    def load_flow(self, request: Request) -> AuthFlow | None:
         flow_uri = request.cookies.get(self.cookie_name, "")
-        flow = get_from_secure_uri(self.db, AuthFlow, flow_uri, attribute="flow_token_hash")
+        flow = get_from_secure_uri(
+            self.db, AuthFlow, flow_uri, attribute="flow_token_hash"
+        )
         if flow is None:
             return None
         if flow.id.hex != request.args.get("flow_id"):
@@ -157,7 +149,9 @@ class Authentication:
         try:
             flow.email_otp_attempts += 1
             if flow.email_otp_attempts > self.email_otp_max_attempts:
-                raise OtpValidationError("Maximum attempts exceeded. Request another code to try again.")
+                raise OtpValidationError(
+                    "Maximum attempts exceeded. Request another code to try again."
+                )
 
             # It shouldn't actually be possible for this to fail due to the view checking
             # flow_next_step to decide whether to verify the OTP.
@@ -169,21 +163,27 @@ class Authentication:
             try:
                 ph.verify(flow.email_otp_hash, otp)
             except (VerificationError, InvalidHashError):
-                raise OtpValidationError("Incorrect code. Check you are using the most recent email.")
+                raise OtpValidationError(
+                    "Incorrect code. Check you are using the most recent email."
+                )
 
             flow.email_verified = datetime.now(timezone.utc)
             if flow.ip_rate_limit_key:
                 self.rate_limiter.reset_rate_limit(flow.ip_rate_limit_key, commit=False)
 
             if flow.member:
-                self.rate_limiter.reset_rate_limit(slow_rate_limit_key(flow.member.email), commit=False)
-                self.rate_limiter.reset_rate_limit(fast_rate_limit_key(flow.member.email), commit=False)
+                self.rate_limiter.reset_rate_limit(
+                    slow_rate_limit_key(flow.member.email), commit=False
+                )
+                self.rate_limiter.reset_rate_limit(
+                    fast_rate_limit_key(flow.member.email), commit=False
+                )
 
             return True
         finally:
             self.db.session.commit()
 
-    def delete_flow(self, flow: AuthFlow, commit:bool=True):
+    def delete_flow(self, flow: AuthFlow, commit: bool = True):
         self.db.session.delete(flow)
         if commit:
             self.db.session.commit()
@@ -193,6 +193,7 @@ class Authentication:
 
 def slow_rate_limit_key(email: str) -> str:
     return f"email_send_slow_limit:{email}"
+
 
 def fast_rate_limit_key(email: str) -> str:
     return f"email_send_fast_limit:{email}"

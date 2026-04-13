@@ -1,13 +1,13 @@
 import base64
-from typing import cast
-from flask import Flask, Request, redirect
 import hashlib
 import hmac
-from urllib.parse import urlencode, parse_qs
-from werkzeug import Response
+from urllib.parse import parse_qs, urlencode
+
+from flask import Flask, Request
 from yarl import URL
 
 from portal.models.member import Session
+
 
 class DiscourseConnectError(Exception):
     pass
@@ -17,12 +17,15 @@ def encode_sso(sso) -> bytes:
     query_string = urlencode(sso)
     return base64.b64encode(query_string.encode("utf-8"))
 
+
 def decode_sso(sso: str) -> dict[str, list[str]]:
     qs = base64.b64decode(sso).decode("utf-8")
     return parse_qs(qs)
 
+
 def compute_sig(secret: bytes, encoded_sso: bytes):
     return hmac.new(secret, encoded_sso, hashlib.sha256).hexdigest()
+
 
 class DiscourseConnect:
     def __init__(self, app: Flask):
@@ -57,7 +60,7 @@ class DiscourseConnect:
             "email": member.email,
             "external_id": member.get_sub(),
             "name": member.display_name,
-            "groups": ",".join(role.name for role in member.roles)
+            "groups": ",".join(role.name for role in member.roles),
         }
 
         if member.username:
@@ -77,10 +80,3 @@ class DiscourseConnect:
 
         # Do the redirect
         return remote_url
-
-
-
-
-
-
-

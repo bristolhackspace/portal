@@ -1,15 +1,17 @@
-from flask import Blueprint, redirect, render_template, url_for
 from typing import cast
+
 import sqlalchemy as sa
+from flask import Blueprint, render_template
 from ua_parser import parse as ua_parse
 
-from portal.middleware import login_required
 from portal.extensions import db, hs
-from portal.models import App, Member, Session
+from portal.middleware import login_required
+from portal.models import App, Session
 
 bp = Blueprint("main", __name__, url_prefix="/")
 
 bp.before_request(login_required)
+
 
 @bp.route("/")
 def index():
@@ -30,4 +32,8 @@ def index():
 def manage():
     current_session = cast(Session, hs.session_manager.current_session)
 
-    return render_template("main/account_manage.html.j2", current_session=current_session, ua_parse=ua_parse)
+    return render_template(
+        "main/account_manage.html.j2",
+        current_session=current_session,
+        ua_parse=ua_parse,
+    )

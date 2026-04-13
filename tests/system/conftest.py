@@ -21,7 +21,7 @@ def app() -> Flask:
             REGISTER_EXTENSIONS=False,
             REGISTER_VIEWS=False,
             TEST_MAILER=True,
-            DISCOURSE_CONNECT_SECRET="test secret"
+            DISCOURSE_CONNECT_SECRET="test secret",
         )
     )
     return app
@@ -38,7 +38,6 @@ def client(app: Flask) -> FlaskClient:
     return app.test_client()
 
 
-
 @pytest.fixture()
 def init_db(app: Flask, app_context: Flask):
     db.init_app(app)
@@ -47,25 +46,31 @@ def init_db(app: Flask, app_context: Flask):
     db.session.remove()
     db.drop_all()
 
+
 @pytest.fixture()
 def session_manager(init_db, app_context):
     return SessionManager(db, None, app_context)
+
 
 @pytest.fixture()
 def cleanup(app_context):
     return Cleanup(app_context)
 
+
 @pytest.fixture()
 def mailer(app_context):
     return BaseMailer.build(app_context)
+
 
 @pytest.fixture()
 def rate_limiter(init_db, app_context):
     return RateLimiter(db, app_context)
 
+
 @pytest.fixture()
 def authentication(mailer, rate_limiter, app_context, init_db):
     return Authentication(mailer, db, rate_limiter, app_context)
+
 
 @pytest.fixture()
 def discourse_connect(app_context):

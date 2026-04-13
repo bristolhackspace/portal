@@ -1,5 +1,3 @@
-
-
 from datetime import datetime, timedelta, timezone
 import uuid
 
@@ -9,11 +7,13 @@ from portal.extensions import db
 from portal.helpers import build_secure_uri, get_from_secure_uri
 from portal.models.member import Session, Member
 
+
 @pytest.fixture()
 def example_endpoint(app):
     @app.route("/example")
     def example():
         return "OK"
+
 
 @pytest.fixture()
 def member_model(init_db):
@@ -21,6 +21,7 @@ def member_model(init_db):
     db.session.add(member)
     db.session.commit()
     return member
+
 
 @pytest.fixture()
 def session_model(member_model):
@@ -38,17 +39,18 @@ def session_model(member_model):
     db.session.commit()
     return sess
 
+
 @pytest.fixture()
-def session_cookie(
-    client, session_manager, session_model
-):
+def session_cookie(client, session_manager, session_model):
     cookie_name = session_manager.cookie_name
     cookie_val = build_secure_uri(session_model, "secret_hash")
     db.session.commit()
     client.set_cookie(cookie_name, cookie_val)
 
 
-def test_load_session(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_load_session(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     # We set an arbitrary authentication so the session doesn't get deleted
     session_model.last_email_auth = datetime.now(timezone.utc)
     db.session.commit()
@@ -62,7 +64,9 @@ def test_load_session(client, session_cookie, example_endpoint, session_model, s
     assert session_model.last_active > initial_last_active
 
 
-def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_keyfob_auth_context(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     session_model.last_keyfob_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -71,7 +75,9 @@ def test_keyfob_auth_context(client, session_cookie, example_endpoint, session_m
     assert session_manager.current_context == {"plastic"}
 
 
-def test_keyfob_max_idle(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_keyfob_max_idle(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     long_time_ago = datetime.now(timezone.utc) - session_manager.keyfob_max_idle
     session_model.last_keyfob_auth = long_time_ago
     session_model.last_active = long_time_ago
@@ -84,7 +90,9 @@ def test_keyfob_max_idle(client, session_cookie, example_endpoint, session_model
     assert session_manager.current_session == None
 
 
-def test_recent_email_auth(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_recent_email_auth(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     session_model.last_email_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -93,7 +101,9 @@ def test_recent_email_auth(client, session_cookie, example_endpoint, session_mod
     assert session_manager.current_context == {"bronze", "silver"}
 
 
-def test_recent_totp_auth(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_recent_totp_auth(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     session_model.last_totp_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -102,7 +112,9 @@ def test_recent_totp_auth(client, session_cookie, example_endpoint, session_mode
     assert session_manager.current_context == {"bronze", "silver", "gold"}
 
 
-def test_recent_passkey_auth(client, session_cookie, example_endpoint, session_model, session_manager):
+def test_recent_passkey_auth(
+    client, session_cookie, example_endpoint, session_model, session_manager
+):
     session_model.last_passkey_auth = datetime.now(timezone.utc)
     db.session.commit()
 
@@ -115,9 +127,7 @@ def test_recent_passkey_auth(client, session_cookie, example_endpoint, session_m
 def test_elevated_auth_expiry(
     client, session_cookie, example_endpoint, session_model, auth_type, session_manager
 ):
-    some_time_ago = (
-        datetime.now(timezone.utc) - session_manager.elevated_auth_expiry
-    )
+    some_time_ago = datetime.now(timezone.utc) - session_manager.elevated_auth_expiry
     setattr(session_model, f"last_{auth_type}_auth", some_time_ago)
     db.session.commit()
 
