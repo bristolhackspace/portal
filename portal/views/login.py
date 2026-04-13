@@ -2,8 +2,7 @@
 import typing
 from datetime import datetime, timezone
 
-from flask import (Blueprint, Response, flash, redirect, render_template,
-                   request, url_for)
+from flask import (Blueprint, redirect, render_template, request, url_for)
 from flask_wtf import FlaskForm
 from wtforms import EmailField, StringField, ValidationError
 from wtforms.validators import DataRequired, Length, Regexp

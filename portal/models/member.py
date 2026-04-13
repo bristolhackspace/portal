@@ -1,11 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from portal.models.base import Base, LocalDateTime, PkModel, UTCDateTime
+from portal.models.base import Base, LocalDateTime, UTCDateTime
 from portal.models.role import Role
 
 member_role_association = Table(

@@ -1,11 +1,9 @@
 import base64
 import hashlib
 import hmac
-from typing import cast
 from urllib.parse import parse_qs, urlencode
 
-from flask import Flask, Request, redirect
-from werkzeug import Response
+from flask import Flask, Request
 from yarl import URL
 
 from portal.models.member import Session

@@ -3,7 +3,7 @@ from functools import partial
 import sqlalchemy as sa
 from flask import Blueprint, flash, redirect, render_template, url_for
 
-from portal.extensions import db, hs
+from portal.extensions import db
 from portal.middleware import login_required
 from portal.models import Member, RateLimit
 

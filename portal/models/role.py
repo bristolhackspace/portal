@@ -1,5 +1,4 @@
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from portal.models.base import PkModel, SpaceSeparatedSet
 

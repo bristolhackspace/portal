@@ -1,9 +1,7 @@
-import uuid
 
 from flask import Blueprint
 
 from portal.extensions import db
-from portal.helpers import hash_token
 from portal.models import Member
 
 bp = Blueprint('demo', __name__, cli_group=None)

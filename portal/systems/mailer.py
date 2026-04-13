@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from flask import Flask, current_app, render_template
 from jinja2 import TemplateNotFound

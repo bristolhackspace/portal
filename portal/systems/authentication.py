@@ -1,20 +1,18 @@
 import functools
-import hashlib
 import secrets
 import typing
 import uuid
 from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 
 import sqlalchemy as sa
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
-from flask import (Flask, Request, Response, after_this_request, current_app,
-                   g, make_response, redirect, request, url_for)
+from flask import (Flask, Request, Response, after_this_request, g,
+                   request, url_for)
 from flask_sqlalchemy import SQLAlchemy
 
 from portal.helpers import (as_timedelta, build_secure_uri,
-                            get_from_secure_uri, hash_token)
+                            get_from_secure_uri)
 from portal.models import AuthFlow, Member
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter

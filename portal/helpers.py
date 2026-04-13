@@ -2,7 +2,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import timedelta
-from typing import Literal, Type, TypeVar, Union, overload
+from typing import Literal, Type, TypeVar, overload
 
 from flask_sqlalchemy import SQLAlchemy
 
