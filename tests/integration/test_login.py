@@ -69,10 +69,7 @@ def check_valid_session(member_model: Member):
     assert session.member == member_model
 
 
-def submit_otp_form(
-    client, email: TestMailer.EmailCapture, prev_response: TestResponse
-) -> TestResponse:
-    otp = email.kwargs["otp"]
+def submit_otp_form(client, otp: str, prev_response: TestResponse) -> TestResponse:
     # Submit the OTP found in the email. Pass through previous request args for the flow_id
     response = client.post(
         "/login/",
@@ -119,7 +116,7 @@ def test_email_login_code(client, member_model):
     check_null_session()
     email, response = request_and_verify_email(client, member_model)
 
-    response = submit_otp_form(client, email, response)
+    response = submit_otp_form(client, email.kwargs["otp"], response)
 
     # Check we got redirected to the homepage
     assert response.request.path == "/"
@@ -145,7 +142,7 @@ def test_email_login_set_username(client, member_model_no_username):
     check_null_session()
     email, response = request_and_verify_email(client, member_model_no_username)
 
-    response = submit_otp_form(client, email, response)
+    response = submit_otp_form(client, email.kwargs["otp"], response)
 
     # Check we haven't been redirected to the homepage yet
     assert response.request.path == "/login/"
@@ -156,3 +153,20 @@ def test_email_login_set_username(client, member_model_no_username):
     assert response.request.path == "/"
 
     check_valid_session(member_model_no_username)
+
+
+def test_incorrect_otp(client, member_model):
+    load_initial_login_page(client)
+    check_null_session()
+    email, response = request_and_verify_email(client, member_model)
+
+    # Don't use random OTP otherwise 1 in 1000000 test runs could fail :)
+    invalid_otp = (int(email.kwargs["otp"]) + 1) % 1000000
+    invalid_otp = f"{invalid_otp:06d}"
+
+    response = submit_otp_form(client, invalid_otp, response)
+
+    # Check we haven't been redirected to the homepage yet
+    assert response.request.path == "/login/"
+
+    check_null_session()
