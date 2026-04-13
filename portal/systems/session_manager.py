@@ -12,7 +12,7 @@ from portal.systems.cleanup import Cleanup
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, cleanup: Cleanup|None, app: Flask):
+    def __init__(self, db: SQLAlchemy, cleanup: Cleanup | None, app: Flask):
         self.db = db
         self.cleanup = cleanup
 
@@ -36,7 +36,6 @@ class SessionManager:
 
         if self.cleanup:
             self.cleanup.register_callback("Session", self.cleanup_sessions)
-
 
     def load_session(self):
         session_uri = request.cookies.get(self.cookie_name, "")
@@ -88,7 +87,7 @@ class SessionManager:
                 created=now,
                 member=member,
                 last_active=now,
-                user_agent=request.user_agent.string
+                user_agent=request.user_agent.string,
             )
             self.db.session.add(session)
             g.hs_session = session
@@ -122,9 +121,7 @@ class SessionManager:
         # TODO: remove update_cookie call from load_session as this will overwrite it
         after_this_request(functools.partial(self.update_cookie, secure_uri))
 
-    def update_cookie(
-        self, secure_uri: str, response: Response
-    ) -> Response:
+    def update_cookie(self, secure_uri: str, response: Response) -> Response:
         response.set_cookie(
             key=self.cookie_name,
             value=secure_uri,
@@ -192,7 +189,7 @@ class SessionManager:
     def current_session(self) -> Session | None:
         return g.get("hs_session")
 
-    def find_context(self, acr_values: list[str]|None) -> str|None:
+    def find_context(self, acr_values: list[str] | None) -> str | None:
         if not acr_values:
             acr_values = ["bronze", "plastic"]
         available = self.current_context

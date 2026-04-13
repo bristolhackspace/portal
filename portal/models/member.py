@@ -29,7 +29,7 @@ class Session(Base):
     last_keyfob_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_totp_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
-    
+
     user_agent: Mapped[Optional[str]]
 
     member: Mapped["Member"] = relationship(back_populates="sessions")
@@ -66,7 +66,9 @@ class Member(Base):
     leave_date: Mapped[Optional[date]]
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="member")
-    roles: Mapped[list["Role"]] = relationship("Role", secondary=member_role_association)
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", secondary=member_role_association
+    )
 
     def get_sub(self):
         return f"{self.id}"

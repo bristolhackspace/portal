@@ -12,6 +12,7 @@ bp = Blueprint("main", __name__, url_prefix="/")
 
 bp.before_request(login_required)
 
+
 @bp.route("/")
 def index():
     query = sa.select(App).order_by(App.order)
@@ -31,4 +32,8 @@ def index():
 def manage():
     current_session = cast(Session, hs.session_manager.current_session)
 
-    return render_template("main/account_manage.html.j2", current_session=current_session, ua_parse=ua_parse)
+    return render_template(
+        "main/account_manage.html.j2",
+        current_session=current_session,
+        ua_parse=ua_parse,
+    )

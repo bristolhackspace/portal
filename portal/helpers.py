@@ -12,14 +12,23 @@ def hash_token(secret: str | bytes) -> str:
         secret = secret.encode("utf-8")
     return hashlib.sha256(secret).hexdigest()
 
-@overload
-def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: Literal[False]=False) -> str: ...
 
 @overload
-def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: Literal[True]=True) -> tuple[str,str]: ...
+def build_secure_uri(
+    obj: object, attribute: str = "token_hash", as_tuple: Literal[False] = False
+) -> str: ...
 
-def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: bool=False) -> str|tuple[str,str]:
-    obj_id = obj.id.hex # type: ignore
+
+@overload
+def build_secure_uri(
+    obj: object, attribute: str = "token_hash", as_tuple: Literal[True] = True
+) -> tuple[str, str]: ...
+
+
+def build_secure_uri(
+    obj: object, attribute: str = "token_hash", as_tuple: bool = False
+) -> str | tuple[str, str]:
+    obj_id = obj.id.hex  # type: ignore
     token = secrets.token_urlsafe()
     setattr(obj, attribute, hash_token(token))
     if as_tuple:
@@ -27,9 +36,13 @@ def build_secure_uri(obj: object, attribute: str="token_hash", as_tuple: bool=Fa
     else:
         return f"{obj_id}:{token}"
 
+
 _O = TypeVar("_O", bound=object)
 
-def get_from_secure_uri(db: SQLAlchemy, cls: Type[_O], uri: str, attribute: str="token_hash") -> _O|None:
+
+def get_from_secure_uri(
+    db: SQLAlchemy, cls: Type[_O], uri: str, attribute: str = "token_hash"
+) -> _O | None:
     parts = uri.split(":")
     if len(parts) != 2:
         return None
@@ -44,9 +57,9 @@ def get_from_secure_uri(db: SQLAlchemy, cls: Type[_O], uri: str, attribute: str=
 
 
 def as_timedelta(value: int | float | timedelta) -> timedelta:
-        if not isinstance(value, timedelta):
-            value = timedelta(seconds=value)
-        return value
+    if not isinstance(value, timedelta):
+        value = timedelta(seconds=value)
+    return value
 
 
 def timedelta_to_human(delta: timedelta) -> str:
@@ -57,8 +70,8 @@ def timedelta_to_human(delta: timedelta) -> str:
             return "1 day"
         else:
             return f"{delta.days} days"
-    elif delta.seconds > 60*60:
-        hours = delta.seconds // (60*60)
+    elif delta.seconds > 60 * 60:
+        hours = delta.seconds // (60 * 60)
         if hours == 1:
             return "1 hour"
         else:

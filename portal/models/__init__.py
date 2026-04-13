@@ -14,5 +14,5 @@ __all__ = [
     "Role",
     "Session",
     "Member",
-    "RateLimit"
+    "RateLimit",
 ]

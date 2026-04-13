@@ -17,6 +17,7 @@ class FlowStep(Enum):
     ACQUIRE_USERNAME = auto()
     FINISHED = auto()
 
+
 class AuthFlow(Base):
     __tablename__ = "auth_flow"
 

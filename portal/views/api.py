@@ -1,4 +1,3 @@
-
 from datetime import date, datetime, timezone
 
 from flask import Blueprint, request
@@ -12,6 +11,7 @@ from portal.models.member import Member
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
 
 bp.before_request(token_required)
+
 
 @bp.route("/members/<int:member_id>", methods=["GET", "PUT"])
 def member(member_id):
@@ -57,14 +57,10 @@ def member(member_id):
         if username is not None:
             member_fields["username"] = username
 
-        stmt = insert(Member).values(
-            id=member_id,
-            **member_fields
-        )
+        stmt = insert(Member).values(id=member_id, **member_fields)
 
         stmt = stmt.on_conflict_do_update(
-            index_elements=[Member.id],
-            set_=member_fields
+            index_elements=[Member.id], set_=member_fields
         )
         db.session.execute(stmt)
         db.session.commit()

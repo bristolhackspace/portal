@@ -15,10 +15,10 @@ def create_app(test_config=None):
         SECRET_KEY="dev",
         SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres:postgres@localhost:5432/portal",
         SENDER_EMAIL="example@example.com",
-        JWT_ISSUER="https://portal.example.com"
+        JWT_ISSUER="https://portal.example.com",
     )
 
-    app.config.from_prefixed_env('PORTAL')
+    app.config.from_prefixed_env("PORTAL")
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -40,24 +40,25 @@ def create_app(test_config=None):
 
     if app.config.get("REGISTER_EXTENSIONS", True):
         from . import extensions
+
         extensions.init_app(app)
 
     if app.config.get("REGISTER_VIEWS", True):
         from . import views
+
         views.init_app(app)
 
         assets = Environment()
         assets.init_app(app)
 
     from . import demo_data
+
     app.register_blueprint(demo_data.bp)
 
     if app.config.get("PROXY_FIX", False):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     return app
-
-
 
 
 def configure_logger(app):

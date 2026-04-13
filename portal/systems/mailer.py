@@ -22,7 +22,9 @@ class BaseMailer(ABC):
     def send_email(self, member: Member, template: str, subject: str, **kwargs):
         plain_content = render_template(f"{template}.txt.j2", member=member, **kwargs)
         try:
-            html_content = render_template(f"{template}.html.j2", member=member, **kwargs)
+            html_content = render_template(
+                f"{template}.html.j2", member=member, **kwargs
+            )
         except TemplateNotFound:
             html_content = None
 
