@@ -13,7 +13,7 @@ def app() -> Flask:
             SQLALCHEMY_DATABASE_URI="postgresql+psycopg2://postgres:postgres@localhost:5432/portal_test",
             TEST_MAILER=True,
             DISCOURSE_CONNECT_SECRET="test secret",
-            WTF_CSRF_ENABLED=False
+            WTF_CSRF_ENABLED=False,
         )
     )
     return app
@@ -24,9 +24,11 @@ def app_context(app):
     with app.app_context():
         yield current_app
 
+
 @pytest.fixture()
 def client(app: Flask) -> FlaskClient:
     return app.test_client()
+
 
 @pytest.fixture(autouse=True)
 def init_db(app: Flask, app_context: Flask):

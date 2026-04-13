@@ -8,7 +8,12 @@ import pytest
 from portal.extensions import db
 from portal.models import Member
 from portal.models.member import Session
-from portal.systems.discourse_connect import DiscourseConnectError, compute_sig, decode_sso, encode_sso
+from portal.systems.discourse_connect import (
+    DiscourseConnectError,
+    compute_sig,
+    decode_sso,
+    encode_sso,
+)
 
 
 @pytest.fixture()
@@ -38,10 +43,7 @@ def session_model(member_model):
 
 def test_authenticate(app, client, session_model, discourse_connect):
     # Build a login request as if it was coming from a DiscourseConnect consumer
-    sso = {
-        "return_sso_url": "https://example.com/login",
-        "nonce": "abc123"
-    }
+    sso = {"return_sso_url": "https://example.com/login", "nonce": "abc123"}
     sso_encoded = encode_sso(sso)
     sig = compute_sig(discourse_connect.secret, sso_encoded)
 
@@ -53,7 +55,10 @@ def test_authenticate(app, client, session_model, discourse_connect):
         nonlocal redirect_url
         redirect_url = discourse_connect.authenticate(request, session_model)
         return "OK"
-    response = client.get("/authenticate", query_string={"sso": sso_encoded.decode("utf-8"), "sig": sig})
+
+    response = client.get(
+        "/authenticate", query_string={"sso": sso_encoded.decode("utf-8"), "sig": sig}
+    )
 
     # Check the request happened successfully
     assert redirect_url is not None
@@ -62,13 +67,18 @@ def test_authenticate(app, client, session_model, discourse_connect):
     assert redirect_url.host == "example.com"
     assert redirect_url.scheme == "https"
     assert redirect_url.path == "/login"
-    
+
     query = redirect_url.query
 
     sig = query["sig"]
     sso = query["sso"]
     # Check the response signature was generated correctly
-    assert hmac.compare_digest(compute_sig(discourse_connect.secret, sso.encode("utf-8")), sig) == True
+    assert (
+        hmac.compare_digest(
+            compute_sig(discourse_connect.secret, sso.encode("utf-8")), sig
+        )
+        == True
+    )
 
     # Check the response payload contains the right data
     sso_decoded = decode_sso(sso)
@@ -80,10 +90,7 @@ def test_authenticate(app, client, session_model, discourse_connect):
 
 def test_authenticate_wrong_secret(app, client, session_model, discourse_connect):
     # Build a login request as if it was coming from a bad DiscourseConnect consumer
-    sso = {
-        "return_sso_url": "https://example.com/login",
-        "nonce": "abc123"
-    }
+    sso = {"return_sso_url": "https://example.com/login", "nonce": "abc123"}
     sso_encoded = encode_sso(sso)
     sig = compute_sig("incorrect secret".encode("utf-8"), sso_encoded)
 
@@ -93,17 +100,17 @@ def test_authenticate_wrong_secret(app, client, session_model, discourse_connect
         with pytest.raises(DiscourseConnectError):
             discourse_connect.authenticate(request, session_model)
         return "OK"
-    response = client.get("/authenticate", query_string={"sso": sso_encoded.decode("utf-8"), "sig": sig})
+
+    response = client.get(
+        "/authenticate", query_string={"sso": sso_encoded.decode("utf-8"), "sig": sig}
+    )
 
     assert response.text == "OK"
 
 
 def test_authenticate_missing_signature(app, client, session_model, discourse_connect):
     # Build a login request as if it was coming from a bad DiscourseConnect consumer
-    sso = {
-        "return_sso_url": "https://example.com/login",
-        "nonce": "abc123"
-    }
+    sso = {"return_sso_url": "https://example.com/login", "nonce": "abc123"}
     sso_encoded = encode_sso(sso)
 
     # Do the authentication with the above request and a premade session
@@ -112,6 +119,9 @@ def test_authenticate_missing_signature(app, client, session_model, discourse_co
         with pytest.raises(DiscourseConnectError):
             discourse_connect.authenticate(request, session_model)
         return "OK"
-    response = client.get("/authenticate", query_string={"sso": sso_encoded.decode("utf-8")})
+
+    response = client.get(
+        "/authenticate", query_string={"sso": sso_encoded.decode("utf-8")}
+    )
 
     assert response.text == "OK"
