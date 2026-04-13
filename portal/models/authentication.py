@@ -1,15 +1,13 @@
+from datetime import datetime
 from enum import Enum, auto
 from typing import Optional
-from portal.models.base import Base, UTCDateTime
-from portal.models.member import Member
-
+from uuid import UUID
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-from datetime import datetime
-from uuid import UUID
+from portal.models.base import Base, UTCDateTime
+from portal.models.member import Member
 
 
 class FlowStep(Enum):

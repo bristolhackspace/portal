@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta, timezone
+from ipaddress import IPv4Address, IPv6Address, IPv6Network, ip_address
 from typing import cast
+
+import sqlalchemy as sa
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from ipaddress import IPv4Address, IPv6Address, ip_address, IPv6Network
-import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import insert
 
 from portal.models.rate_limit import RateLimit
+
 
 class RateLimitError(Exception):
     def __init__(self, expiry: datetime):

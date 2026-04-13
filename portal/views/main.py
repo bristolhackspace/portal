@@ -1,10 +1,11 @@
-from flask import Blueprint, redirect, render_template, url_for
 from typing import cast
+
 import sqlalchemy as sa
+from flask import Blueprint, redirect, render_template, url_for
 from ua_parser import parse as ua_parse
 
-from portal.middleware import login_required
 from portal.extensions import db, hs
+from portal.middleware import login_required
 from portal.models import App, Member, Session
 
 bp = Blueprint("main", __name__, url_prefix="/")

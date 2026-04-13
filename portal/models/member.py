@@ -1,13 +1,12 @@
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import UUID
-from portal.models.role import Role
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from portal.models.base import Base, PkModel, UTCDateTime, LocalDateTime
-
 
 from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from portal.models.base import Base, LocalDateTime, PkModel, UTCDateTime
+from portal.models.role import Role
 
 member_role_association = Table(
     "member_role",

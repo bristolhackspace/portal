@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
-from flask import redirect, request, url_for, current_app
 import secrets
+from datetime import datetime, timezone
+
+from flask import current_app, redirect, request, url_for
 from werkzeug import Response
 from werkzeug.datastructures import WWWAuthenticate
-from werkzeug.exceptions import Unauthorized, Forbidden
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from portal.extensions import hs
 

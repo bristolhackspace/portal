@@ -2,10 +2,10 @@ import logging
 import os
 import sys
 import tomllib
-from werkzeug.middleware.proxy_fix import ProxyFix
 
 from flask import Flask
 from flask_assets import Environment
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def create_app(test_config=None):

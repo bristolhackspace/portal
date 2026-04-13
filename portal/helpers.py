@@ -1,8 +1,8 @@
-from datetime import timedelta
 import hashlib
 import secrets
-from typing import Literal, Type, TypeVar, Union, overload
 import uuid
+from datetime import timedelta
+from typing import Literal, Type, TypeVar, Union, overload
 
 from flask_sqlalchemy import SQLAlchemy
 

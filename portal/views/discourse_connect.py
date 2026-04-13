@@ -1,8 +1,8 @@
 from flask import Blueprint, redirect, render_template, request
 
-from portal.systems.discourse_connect import DiscourseConnectError
 from portal.extensions import hs
 from portal.middleware import login_required
+from portal.systems.discourse_connect import DiscourseConnectError
 
 bp = Blueprint("discourse_connect", __name__, url_prefix="/dc")
 

@@ -1,8 +1,7 @@
 from sqlalchemy import ForeignKey
-from portal.models.base import PkModel, SpaceSeparatedSet
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from portal.models.base import PkModel, SpaceSeparatedSet
 
 # class ClaimSet(PkModel):
 #     __tablename__ = "claim_set"

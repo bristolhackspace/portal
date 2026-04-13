@@ -1,28 +1,20 @@
-from argon2 import PasswordHasher
-from argon2.exceptions import VerificationError, InvalidHashError
-from datetime import datetime, timedelta, timezone
-from enum import Enum, auto
 import functools
 import hashlib
 import secrets
 import typing
 import uuid
-from flask import (
-    Flask,
-    Request,
-    Response,
-    after_this_request,
-    current_app,
-    g,
-    make_response,
-    redirect,
-    request,
-    url_for,
-)
-from flask_sqlalchemy import SQLAlchemy
-import sqlalchemy as sa
+from datetime import datetime, timedelta, timezone
+from enum import Enum, auto
 
-from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri, hash_token
+import sqlalchemy as sa
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError
+from flask import (Flask, Request, Response, after_this_request, current_app,
+                   g, make_response, redirect, request, url_for)
+from flask_sqlalchemy import SQLAlchemy
+
+from portal.helpers import (as_timedelta, build_secure_uri,
+                            get_from_secure_uri, hash_token)
 from portal.models import AuthFlow, Member
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter

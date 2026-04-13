@@ -1,4 +1,5 @@
 import uuid
+
 from flask import Blueprint
 
 from portal.extensions import db

@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 from flask import Blueprint, Flask, current_app
 from flask.cli import AppGroup
 

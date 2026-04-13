@@ -1,12 +1,13 @@
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
-from portal.models.role import Role
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from portal.models.base import Base, PkModel, UTCDateTime
-
 
 from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from portal.models.base import Base, PkModel, UTCDateTime
+from portal.models.role import Role
+
 
 class RateLimit(PkModel):
     __tablename__ = "rate_limit"

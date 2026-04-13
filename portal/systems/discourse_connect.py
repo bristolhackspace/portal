@@ -1,13 +1,15 @@
 import base64
-from typing import cast
-from flask import Flask, Request, redirect
 import hashlib
 import hmac
-from urllib.parse import urlencode, parse_qs
+from typing import cast
+from urllib.parse import parse_qs, urlencode
+
+from flask import Flask, Request, redirect
 from werkzeug import Response
 from yarl import URL
 
 from portal.models.member import Session
+
 
 class DiscourseConnectError(Exception):
     pass

@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
 import functools
-from flask import current_app
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+
+from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column
-
 
 Base = declarative_base()
 

@@ -1,12 +1,14 @@
 
-from datetime import datetime, timezone
 import typing
-from flask import Blueprint, Response, flash, redirect, render_template, request, url_for
+from datetime import datetime, timezone
+
+from flask import (Blueprint, Response, flash, redirect, render_template,
+                   request, url_for)
 from flask_wtf import FlaskForm
 from wtforms import EmailField, StringField, ValidationError
-from wtforms.validators import DataRequired, Regexp, Length
+from wtforms.validators import DataRequired, Length, Regexp
 
-from portal.extensions import hs, db
+from portal.extensions import db, hs
 from portal.helpers import timedelta_to_human
 from portal.models import Member
 from portal.models.authentication import AuthFlow, FlowStep

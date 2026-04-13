@@ -1,7 +1,8 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from portal.models.base import PkModel
+
 
 class App(PkModel):
     __tablename__ = "app"

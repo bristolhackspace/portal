@@ -4,12 +4,6 @@ import pytest
 
 from portal import create_app
 from portal.extensions import db
-from portal.systems.authentication import Authentication
-from portal.systems.cleanup import Cleanup
-from portal.systems.discourse_connect import DiscourseConnect
-from portal.systems.mailer import BaseMailer
-from portal.systems.rate_limiter import RateLimiter
-from portal.systems.session_manager import SessionManager
 
 
 @pytest.fixture()

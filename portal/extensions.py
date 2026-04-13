@@ -6,8 +6,8 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.local import LocalProxy
 
 from portal import models
-from portal.systems import HackspaceSystems
 from portal.helpers import timedelta_to_human
+from portal.systems import HackspaceSystems
 
 db = SQLAlchemy(metadata=models.Base.metadata)
 migrate = Migrate(db=db)

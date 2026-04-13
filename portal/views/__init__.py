@@ -1,5 +1,7 @@
 from flask import Flask
-from . import admin, api, login, main, discourse_connect
+
+from . import admin, api, discourse_connect, login, main
+
 
 def init_app(app: Flask):
     app.register_blueprint(admin.bp)

@@ -1,13 +1,13 @@
 
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
+
 from flask import Blueprint, request
 from sqlalchemy.dialects.postgresql import insert
 from werkzeug.exceptions import BadRequest
 
-from portal.middleware import token_required
 from portal.extensions import db
+from portal.middleware import token_required
 from portal.models.member import Member
-
 
 bp = Blueprint("api", __name__, url_prefix="/api/v1")
 

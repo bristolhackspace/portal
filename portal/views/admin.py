@@ -1,10 +1,11 @@
-from flask import Blueprint, redirect, render_template, url_for, flash
 from functools import partial
-import sqlalchemy as sa
 
-from portal.middleware import login_required
+import sqlalchemy as sa
+from flask import Blueprint, flash, redirect, render_template, url_for
+
 from portal.extensions import db, hs
-from portal.models import RateLimit, Member
+from portal.middleware import login_required
+from portal.models import Member, RateLimit
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
