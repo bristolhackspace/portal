@@ -100,7 +100,7 @@ def test_member_update(client, app, member_model):
     assert member_model.username == new_username
 
 
-def test_member_create(client, app, member_model):
+def test_member_create(client, app):
     updated = datetime.now(timezone.utc).replace(microsecond=0)
     new_join_date = date.today()
     new_leave_date = date.today()
