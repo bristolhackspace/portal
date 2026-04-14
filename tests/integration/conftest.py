@@ -14,6 +14,7 @@ def app() -> Flask:
             TEST_MAILER=True,
             DISCOURSE_CONNECT_SECRET="test secret",
             WTF_CSRF_ENABLED=False,
+            API_SECRET="test secret",
         )
     )
     return app
