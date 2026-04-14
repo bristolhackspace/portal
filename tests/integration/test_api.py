@@ -134,3 +134,9 @@ def test_member_create(client, app):
     assert member.display_name == new_display_name
     assert member.email == new_email
     assert member.username == new_username
+
+
+def test_member_get_unauthorized(client, member_model):
+    headers = {"Authorization": f"Bearer wrong_secret"}
+    response = client.get(f"/api/v1/members/{member_model.id}", headers=headers)
+    assert response.status_code == 401
