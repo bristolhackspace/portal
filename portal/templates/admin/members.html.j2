@@ -15,7 +15,10 @@
             <dd>{{ member.display_name }}</dd>
             <dt>Email</dt>
             <dd>{{ member.email }}</dd>
+            <dt>Username</dt>
+            <dd>{{ member.username }}</dd>
             </dl>
+            <p><a href="{{ url_for('admin.member', member_id=member.id) }}" class="button">Edit</a></p>
         </li>
         {% endfor %}
     </ul>
