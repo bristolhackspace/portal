@@ -1,0 +1,21 @@
+{% extends "base.html.j2" %}
+
+{% import 'wtforms.html.j2' as wtf %}
+
+{% block title %}Edit member{% endblock %}
+
+{% block contents %}
+<div class="container">
+    <h1>Edit member</h1>
+    <form method="POST" class="form">
+        <fieldset>
+            {{ form.hidden_tag() }}
+            {{ wtf.input(form.display_name, form) }}
+            {{ wtf.input(form.username, form) }}
+            {{ wtf.input(form.email, form) }}
+            {{ wtf.input(form.roles, form) }}
+            <p><button type="submit" class="btn btn-primary">Submit</button> <a href="{{ url_for('admin.members') }}">Cancel</a></p>
+        </fieldset>
+    </form>
+</div>
+{% endblock %}

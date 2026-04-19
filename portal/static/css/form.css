@@ -47,6 +47,11 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
     outline: black solid 0.1rem;
 }
 
+input:read-only, textarea:read-only {
+    background-color: var(--bg-readonly-color);
+    color: var(--font-readonly-color);
+}
+
 button, .button, input[type=submit] {
     display: inline-block;
     font: inherit;

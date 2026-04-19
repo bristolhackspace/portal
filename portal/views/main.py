@@ -1,7 +1,7 @@
 from typing import cast
 
 import sqlalchemy as sa
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, url_for
 from ua_parser import parse as ua_parse
 
 from portal.extensions import db, hs
@@ -15,8 +15,18 @@ bp.before_request(login_required)
 
 @bp.route("/")
 def index():
+    current_session = cast(Session, hs.session_manager.current_session)
+
     query = sa.select(App).order_by(App.order)
-    apps = db.session.execute(query).scalars().all()
+    apps = list(db.session.execute(query).scalars().all())
+
+    if "portal:admin" in current_session.member.claims:
+        apps.append(App(
+            name="Admin",
+            description="Portal administration",
+            url=url_for("admin.index", _external=True),
+            new_tab=False
+        ))
 
     # apps.append(App(
     #     name="Account Management",

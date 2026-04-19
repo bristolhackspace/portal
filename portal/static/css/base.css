@@ -26,6 +26,8 @@
     --button-hover-color: #024303;
     --button-font-color: #efefef;
     --box-padding: 0 0.5rem;
+    --bg-readonly-color: var(--bg-secondary-color);
+    --font-readonly-color: #4e4e4e;
 }
 
 @font-face {
