@@ -8,13 +8,17 @@ from flask_sqlalchemy import SQLAlchemy
 
 from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri
 from portal.models import Member, Session
+from portal.systems.audit import Audit
 from portal.systems.cleanup import Cleanup
 
 
 class SessionManager:
-    def __init__(self, db: SQLAlchemy, cleanup: Cleanup | None, app: Flask):
+    def __init__(
+        self, db: SQLAlchemy, cleanup: Cleanup | None, audit: Audit | None, app: Flask
+    ):
         self.db = db
         self.cleanup = cleanup
+        self.audit = audit
 
         self.cookie_name: str = app.config.get("HS_SESSION_NAME", "id")
         self.cookie_max_age = as_timedelta(
@@ -81,6 +85,8 @@ class SessionManager:
             self.db.session.commit()
             session = None
 
+        new_session = False
+
         if session is None:
             session = Session(
                 id=uuid.uuid4(),
@@ -92,13 +98,17 @@ class SessionManager:
             self.db.session.add(session)
             g.hs_session = session
             latest_auth_time = datetime.fromtimestamp(0, timezone.utc)
+            new_session = True
         else:
             latest_auth_time = session.last_auth
 
         # Rotate secret
         secure_uri = build_secure_uri(session, "secret_hash")
 
+        loggable_methods = dict()
         for method, auth_time in methods.items():
+            loggable_methods[method] = auth_time.timestamp()
+
             match method:
                 case "email":
                     session.last_email_auth = auth_time
@@ -117,6 +127,14 @@ class SessionManager:
         session.last_auth = latest_auth_time
 
         self.db.session.commit()
+
+        if self.audit:
+            self.audit.log(
+                "session",
+                "authenticate",
+                member,
+                {"methods": loggable_methods, "new": new_session},
+            )
 
         # TODO: remove update_cookie call from load_session as this will overwrite it
         after_this_request(functools.partial(self.update_cookie, secure_uri))

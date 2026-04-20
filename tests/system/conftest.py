@@ -50,7 +50,7 @@ def init_db(app: Flask, app_context: Flask):
 
 @pytest.fixture()
 def session_manager(init_db, app_context):
-    return SessionManager(db, None, app_context)
+    return SessionManager(db, None, None, app_context)
 
 
 @pytest.fixture()
@@ -75,7 +75,7 @@ def authentication(mailer, rate_limiter, app_context, init_db):
 
 @pytest.fixture()
 def discourse_connect(app_context):
-    return DiscourseConnect(app_context)
+    return DiscourseConnect(None, app_context)
 
 
 @pytest.fixture()

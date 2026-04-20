@@ -7,6 +7,7 @@ from flask import Flask, Request
 from yarl import URL
 
 from portal.models.member import Session
+from portal.systems.audit import Audit
 
 
 class DiscourseConnectError(Exception):
@@ -28,8 +29,8 @@ def compute_sig(secret: bytes, encoded_sso: bytes):
 
 
 class DiscourseConnect:
-    def __init__(self, app: Flask):
-
+    def __init__(self, audit: Audit | None, app: Flask):
+        self.audit = audit
         self.secret = app.config["DISCOURSE_CONNECT_SECRET"].encode("utf-8")
 
     def authenticate(self, request: Request, session: Session) -> URL:
@@ -53,6 +54,7 @@ class DiscourseConnect:
         return_sso_url = args["return_sso_url"][0]
 
         member = session.member
+        roles = [role.name for role in member.roles]
 
         # Build response payload
         response = {
@@ -60,11 +62,14 @@ class DiscourseConnect:
             "email": member.email,
             "external_id": member.get_sub(),
             "name": member.display_name,
-            "groups": ",".join(role.name for role in member.roles),
+            "groups": ",".join(roles),
         }
 
         if member.username:
             response["username"] = member.username
+
+        if self.audit:
+            self.audit.log("discourse_connect", "login", member, {"groups": roles})
 
         # Encode and sign response
         response_encoded = encode_sso(response)
