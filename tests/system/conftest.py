@@ -4,6 +4,7 @@ import pytest
 
 from portal import create_app
 from portal.extensions import db
+from portal.systems.audit import Audit
 from portal.systems.authentication import Authentication
 from portal.systems.cleanup import Cleanup
 from portal.systems.discourse_connect import DiscourseConnect
@@ -75,3 +76,8 @@ def authentication(mailer, rate_limiter, app_context, init_db):
 @pytest.fixture()
 def discourse_connect(app_context):
     return DiscourseConnect(app_context)
+
+
+@pytest.fixture()
+def audit(init_db, app_context):
+    return Audit(db, app_context)
