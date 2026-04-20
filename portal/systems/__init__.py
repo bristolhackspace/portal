@@ -15,7 +15,7 @@ class HackspaceSystems:
         self.db = db
         self.cleanup = Cleanup(app)
         self.audit = Audit(db, app)
-        self.rate_limiter = RateLimiter(self.db, app)
+        self.rate_limiter = RateLimiter(self.db, self.cleanup, app)
         self.session_manager = SessionManager(self.db, self.cleanup, self.audit, app)
         self.mailer = BaseMailer.build(app)
         self.authentication = Authentication(
