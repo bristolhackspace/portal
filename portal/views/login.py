@@ -21,6 +21,12 @@ class LoginForm(FlaskForm):
         "Email associated with your Hackspace account:", validators=[DataRequired()]
     )
 
+    def filter_email(self, field_data):
+        if field_data:
+            return field_data.strip()
+        else:
+            return field_data
+
 
 class UsernameForm(FlaskForm):
     username = StringField(
@@ -35,6 +41,12 @@ class UsernameForm(FlaskForm):
         ],
     )
 
+    def filter_username(self, field_data):
+        if field_data:
+            return field_data.strip()
+        else:
+            return field_data
+
 
 class OtpForm(FlaskForm):
     otp = StringField(
@@ -47,7 +59,8 @@ class OtpForm(FlaskForm):
 
     def validate_otp(self, field):
         try:
-            hs.authentication.verify_email_otp(field.data, self.flow)
+            otp_data = field.data.replace(" ", "")
+            hs.authentication.verify_email_otp(otp_data, self.flow)
         except OtpValidationError as e:
             raise ValidationError(e.args[0])
 
