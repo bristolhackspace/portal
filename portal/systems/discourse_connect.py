@@ -51,7 +51,7 @@ class DiscourseConnect:
         # Extract arguments from sso
         args = decode_sso(sso)
         nonce = args["nonce"][0]
-        return_sso_url = args["return_sso_url"][0]
+        return_sso_url = URL(args["return_sso_url"][0])
 
         member = session.member
         roles = [role.name for role in member.roles]
@@ -69,14 +69,19 @@ class DiscourseConnect:
             response["username"] = member.username
 
         if self.audit:
-            self.audit.log("discourse_connect", "login", member, {"groups": roles})
+            self.audit.log(
+                "discourse_connect",
+                "login",
+                member,
+                {"groups": roles, "destination": return_sso_url.host},
+            )
 
         # Encode and sign response
         response_encoded = encode_sso(response)
         response_digest = compute_sig(secret, response_encoded)
 
         # Build redirect URL
-        remote_url = URL(return_sso_url).with_query(
+        remote_url = return_sso_url.with_query(
             {
                 "sso": response_encoded.decode("utf-8"),
                 "sig": response_digest,
