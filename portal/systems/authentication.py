@@ -82,7 +82,7 @@ class Authentication:
 
         flow.ip_rate_limit_key = ip_rate_limit_key
 
-        query = sa.select(Member).filter(Member.email == email)
+        query = sa.select(Member).filter(sa.func.lower(Member.email) == sa.func.lower(email))
         member = self.db.session.execute(query).scalar_one_or_none()
 
         now = datetime.now(timezone.utc)
