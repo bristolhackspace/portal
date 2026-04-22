@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import Column, ForeignKey, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from portal.models.base import Base, LocalDateTime, UTCDateTime
+from portal.models.base import Base, LocalDateTime, SpaceSeparatedSet, UTCDateTime
 from portal.models.role import Role
 
 member_role_association = Table(
@@ -31,6 +31,10 @@ class Session(Base):
     last_passkey_auth: Mapped[Optional[datetime]] = mapped_column(UTCDateTime())
 
     user_agent: Mapped[Optional[str]]
+
+    active_clients: Mapped[set[str]] = mapped_column(
+        SpaceSeparatedSet(), server_default=""
+    )
 
     member: Mapped["Member"] = relationship(back_populates="sessions")
 

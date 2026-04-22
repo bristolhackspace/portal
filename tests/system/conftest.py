@@ -74,8 +74,8 @@ def authentication(mailer, rate_limiter, app_context, init_db):
 
 
 @pytest.fixture()
-def discourse_connect(app_context):
-    return DiscourseConnect(None, app_context)
+def discourse_connect(init_db, app_context):
+    return DiscourseConnect(db, None, app_context)
 
 
 @pytest.fixture()

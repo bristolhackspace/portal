@@ -21,4 +21,4 @@ class HackspaceSystems:
         self.authentication = Authentication(
             self.mailer, self.db, self.rate_limiter, app
         )
-        self.discourse_auth = DiscourseConnect(self.audit, app)
+        self.discourse_auth = DiscourseConnect(self.db, self.audit, app)
