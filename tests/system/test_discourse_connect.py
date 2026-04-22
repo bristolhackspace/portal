@@ -125,3 +125,25 @@ def test_authenticate_missing_signature(app, client, session_model, discourse_co
     )
 
     assert response.text == "OK"
+
+
+def test_session_records_client(app, client, session_model, discourse_connect):
+    # Build a login request as if it was coming from a DiscourseConnect consumer
+    sso = {"return_sso_url": "https://example.com/login", "nonce": "abc123"}
+    sso_encoded = encode_sso(sso)
+    sig = compute_sig(discourse_connect.secret, sso_encoded)
+
+    redirect_url = None
+
+    # Do the authentication with the above request and a premade session
+    @app.route("/authenticate")
+    def authenticate():
+        nonlocal redirect_url
+        redirect_url = discourse_connect.authenticate(request, session_model)
+        return "OK"
+
+    response = client.get(
+        "/authenticate", query_string={"sso": sso_encoded.decode("utf-8"), "sig": sig}
+    )
+
+    assert session_model.active_clients == {"example.com"}

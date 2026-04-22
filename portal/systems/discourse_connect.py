@@ -1,9 +1,11 @@
 import base64
 import hashlib
 import hmac
+from typing import cast
 from urllib.parse import parse_qs, urlencode
 
 from flask import Flask, Request
+from flask_sqlalchemy import SQLAlchemy
 from yarl import URL
 
 from portal.models.member import Session
@@ -29,7 +31,8 @@ def compute_sig(secret: bytes, encoded_sso: bytes):
 
 
 class DiscourseConnect:
-    def __init__(self, audit: Audit | None, app: Flask):
+    def __init__(self, db: SQLAlchemy, audit: Audit | None, app: Flask):
+        self.db = db
         self.audit = audit
         self.secret = app.config["DISCOURSE_CONNECT_SECRET"].encode("utf-8")
 
@@ -52,6 +55,7 @@ class DiscourseConnect:
         args = decode_sso(sso)
         nonce = args["nonce"][0]
         return_sso_url = URL(args["return_sso_url"][0])
+        host = cast(str, return_sso_url.host)  # Return URL will always be absolute
 
         member = session.member
         roles = [role.name for role in member.roles]
@@ -67,6 +71,10 @@ class DiscourseConnect:
 
         if member.username:
             response["username"] = member.username
+
+        # Record client in session for logout purposes
+        session.active_clients.add(host)
+        self.db.session.commit()
 
         if self.audit:
             self.audit.log(
