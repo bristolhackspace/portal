@@ -3,7 +3,9 @@ from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy.ext.mutable import MutableSet
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 
 from portal.models.base import Base, LocalDateTime, SpaceSeparatedSet, UTCDateTime
 from portal.models.role import Role
@@ -33,7 +35,7 @@ class Session(Base):
     user_agent: Mapped[Optional[str]]
 
     active_clients: Mapped[set[str]] = mapped_column(
-        SpaceSeparatedSet(), server_default=""
+        MutableSet.as_mutable(SpaceSeparatedSet()), server_default=""
     )
 
     member: Mapped["Member"] = relationship(back_populates="sessions")
