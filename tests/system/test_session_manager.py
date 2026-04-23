@@ -168,3 +168,41 @@ def test_authenticate_session(app, client, member_model, auth_type, session_mana
     session = get_from_secure_uri(db, Session, cookie.value, "secret_hash")
     assert session is not None
     assert getattr(session, f"last_{auth_type}_auth") == now
+
+
+def test_cleanup_sessions(member_model, session_manager):
+    expired_session_count = 5
+    valid_session_count = 7
+    expired = (
+        datetime.now(timezone.utc)
+        - session_manager.login_max_idle
+        - timedelta(seconds=5)
+    )
+    valid = datetime.now(timezone.utc) - timedelta(seconds=5)
+    for i in range(expired_session_count):
+        sess = Session(
+            id=uuid.uuid4(),
+            secret_hash="",
+            member=member_model,
+            created=expired,
+            last_active=expired,
+            last_auth=expired,
+            last_email_auth=expired,
+        )
+        db.session.add(sess)
+
+    for i in range(valid_session_count):
+        sess = Session(
+            id=uuid.uuid4(),
+            secret_hash="",
+            member=member_model,
+            created=valid,
+            last_active=valid,
+            last_auth=valid,
+            last_email_auth=valid,
+        )
+        db.session.add(sess)
+    db.session.commit()
+
+    cleaned_up = session_manager.cleanup_sessions()
+    assert cleaned_up == expired_session_count
