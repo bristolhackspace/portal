@@ -37,12 +37,14 @@ class MemberForm(FlaskForm):
 def member(member_id: int):
     member = db.get_or_404(Member, member_id)
 
-    form = MemberForm(data={
-        "display_name": member.display_name,
-        "email": member.email,
-        "username": member.username,
-        "roles": [role.id for role in member.roles]
-    })
+    form = MemberForm(
+        data={
+            "display_name": member.display_name,
+            "email": member.email,
+            "username": member.username,
+            "roles": [role.id for role in member.roles],
+        }
+    )
 
     role_query = db.select(Role).order_by(Role.name)
     roles = db.session.execute(role_query).scalars().all()
@@ -63,7 +65,7 @@ def member(member_id: int):
 
 @bp.route("/rate-limits")
 def rate_limits():
-    page = db.paginate(db.select(RateLimit).order_by(RateLimit.key))
+    page = db.paginate(db.select(RateLimit).order_by(RateLimit.id.desc()))
     return render_template("admin/rate_limits.html.j2", page=page)
 
 
