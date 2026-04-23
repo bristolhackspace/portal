@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import insert
 
 from portal.models.rate_limit import RateLimit
+from portal.systems.cleanup import Cleanup
 
 
 class RateLimitError(Exception):
@@ -17,8 +18,12 @@ class RateLimitError(Exception):
 
 
 class RateLimiter:
-    def __init__(self, db: SQLAlchemy, app: Flask):
+    def __init__(self, db: SQLAlchemy, cleanup: Cleanup | None, app: Flask):
         self.db = db
+        self.cleanup = cleanup
+
+        if self.cleanup:
+            self.cleanup.register_callback("rate_limits", self.cleanup_rate_limits)
 
     def rate_limit(
         self, key: str, limit: int, duration: timedelta | int, commit: bool = True
@@ -65,3 +70,9 @@ class RateLimiter:
             # Strip out the lower 64 bits as these are usually randomized
             ip = IPv6Network((ip, 64), False).network_address
             return str(ip)
+
+    def cleanup_rate_limits(self) -> int:
+        now = datetime.now(timezone.utc)
+        query = sa.delete(RateLimit).where(RateLimit.expiry < now)
+        result = self.db.session.execute(query)
+        return result.rowcount  # pyright: ignore[reportAttributeAccessIssue]

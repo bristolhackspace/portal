@@ -65,7 +65,7 @@ def mailer(app_context):
 
 @pytest.fixture()
 def rate_limiter(init_db, app_context):
-    return RateLimiter(db, app_context)
+    return RateLimiter(db, None, app_context)
 
 
 @pytest.fixture()
