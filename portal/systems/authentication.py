@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from portal.helpers import as_timedelta, build_secure_uri, get_from_secure_uri
 from portal.models import AuthFlow, Member
+from portal.systems.cleanup import Cleanup
 from portal.systems.mailer import BaseMailer
 from portal.systems.rate_limiter import RateLimiter
 
@@ -27,11 +28,16 @@ class Authentication:
         mailer: BaseMailer,
         db: SQLAlchemy,
         rate_limiter: RateLimiter,
+        cleanup: Cleanup | None,
         app: Flask,
     ):
         self.mailer = mailer
         self.db = db
         self.rate_limiter = rate_limiter
+        self.cleanup = cleanup
+
+        if self.cleanup:
+            self.cleanup.register_callback("auth_flows", self.cleanup_auth_flows)
 
         self.flow_expiry = as_timedelta(
             app.config.get("AUTH_FLOW_EXPIRY", timedelta(minutes=10))
@@ -82,7 +88,9 @@ class Authentication:
 
         flow.ip_rate_limit_key = ip_rate_limit_key
 
-        query = sa.select(Member).filter(sa.func.lower(Member.email) == sa.func.lower(email))
+        query = sa.select(Member).filter(
+            sa.func.lower(Member.email) == sa.func.lower(email)
+        )
         member = self.db.session.execute(query).scalar_one_or_none()
 
         now = datetime.now(timezone.utc)
@@ -189,6 +197,12 @@ class Authentication:
             self.db.session.commit()
 
         after_this_request(self.delete_flow_cookie)
+
+    def cleanup_auth_flows(self) -> int:
+        now = datetime.now(timezone.utc)
+        query = sa.delete(AuthFlow).where(AuthFlow.expiry < now)
+        result = self.db.session.execute(query)
+        return result.rowcount  # pyright: ignore[reportAttributeAccessIssue]
 
 
 def slow_rate_limit_key(email: str) -> str:

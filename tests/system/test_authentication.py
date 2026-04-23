@@ -212,3 +212,35 @@ def test_flow_next_step_finished(
 
     response = client.get("/verify", query_string={"flow_id": flow_model.id.hex})
     assert flow_step == FlowStep.FINISHED
+
+
+def test_cleanup_auth_flows(member_model, authentication):
+    expired_flow_count = 5
+    valid_flow_count = 7
+    expired = datetime.now(timezone.utc) - timedelta(seconds=5)
+    valid = datetime.now(timezone.utc) + timedelta(seconds=20)
+    for i in range(expired_flow_count):
+        flow = AuthFlow(
+            id=uuid.uuid4(),
+            member=member_model,
+            flow_token_hash="",
+            email_otp_hash="",
+            email_otp_attempts=0,
+            expiry=expired,
+        )
+        db.session.add(flow)
+
+    for i in range(valid_flow_count):
+        flow = AuthFlow(
+            id=uuid.uuid4(),
+            member=member_model,
+            flow_token_hash="",
+            email_otp_hash="",
+            email_otp_attempts=0,
+            expiry=valid,
+        )
+        db.session.add(flow)
+    db.session.commit()
+
+    cleaned_up = authentication.cleanup_auth_flows()
+    assert cleaned_up == expired_flow_count
