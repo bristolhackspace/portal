@@ -19,6 +19,6 @@ class HackspaceSystems:
         self.session_manager = SessionManager(self.db, self.cleanup, self.audit, app)
         self.mailer = BaseMailer.build(app)
         self.authentication = Authentication(
-            self.mailer, self.db, self.rate_limiter, app
+            self.mailer, self.db, self.rate_limiter, self.cleanup, app
         )
         self.discourse_auth = DiscourseConnect(self.db, self.audit, app)

@@ -70,7 +70,7 @@ def rate_limiter(init_db, app_context):
 
 @pytest.fixture()
 def authentication(mailer, rate_limiter, app_context, init_db):
-    return Authentication(mailer, db, rate_limiter, app_context)
+    return Authentication(mailer, db, rate_limiter, None, app_context)
 
 
 @pytest.fixture()
