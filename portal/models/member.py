@@ -79,6 +79,7 @@ class Member(Base):
     def get_sub(self):
         return f"{self.id}"
 
+    # TODO: Rename claims to scope. Claims is misleading as these can be any information, not just permissions
     @property
     def claims(self):
         claims = set()
